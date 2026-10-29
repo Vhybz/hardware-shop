@@ -24,6 +24,13 @@ class AuthController extends Controller {
 
         $user = Auth::user();
 
+        if (isset($user->status) && in_array(strtolower($user->status), ['suspended', 'deleted'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This account has been deleted or suspended.'
+            ], 403);
+        }
+
         if (isset($user->status) && $user->status !== 'approved') {
             return response()->json([
                 'status' => 'error',
