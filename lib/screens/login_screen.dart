@@ -87,6 +87,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           return;
         }
 
+        if (userAccount.isDeleted) {
+          await GlobalLogout.perform(ref);
+          if (mounted) {
+            _showMessage('Account Deleted', 'This account has been deleted and can no longer log in.', isError: true);
+          }
+          return;
+        }
+
         if (userAccount.status == AccountStatus.suspended) {
           await GlobalLogout.perform(ref);
           if (mounted) {
@@ -144,6 +152,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (offlineUser != null && mounted) {
+        if (offlineUser.isDeleted) {
+          _showMessage('Account Deleted', 'This account has been deleted and can no longer log in.', isError: true);
+          return;
+        }
+
         if (offlineUser.status == AccountStatus.pending) {
           _showMessage(AppStrings.approvalPendingTitle, AppStrings.approvalPendingMessage, isWarning: true);
           return;

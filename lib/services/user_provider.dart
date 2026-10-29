@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'offline_sync_service.dart';
+import 'offline_auth_vault.dart';
 import '../models/user_model.dart';
 
 class DummyUserService {
@@ -87,6 +88,10 @@ class UserNotifier extends StateNotifier<List<UserAccount>> {
   Future<void> clearTemporaryPromotion(String id) async {}
 
   Future<void> deleteUser(String id) async {
+    final userToDelete = state.where((u) => u.id == id).firstOrNull;
+    if (userToDelete != null) {
+      await OfflineAuthVault.deleteAccount(userToDelete.email);
+    }
     state = state.where((u) => u.id != id).toList();
     _saveToCache();
   }

@@ -29,6 +29,23 @@ class OfflineAuthVault {
     }
   }
 
+  static Future<void> deleteAccount(String identifier) async {
+    try {
+      final box = await Hive.openBox(_authVaultBoxName);
+      final clean = identifier.trim().toLowerCase();
+      await box.delete(clean);
+      final lastUser = box.get('last_signed_in_user');
+      if (lastUser != null) {
+        final data = Map<String, dynamic>.from(lastUser);
+        if ((data['email']?.toString().toLowerCase() ?? '') == clean) {
+          await box.delete('last_signed_in_user');
+        }
+      }
+    } catch (e) {
+      debugPrint('deleteAccount error: $e');
+    }
+  }
+
   static Map<String, dynamic>? getAccount(String identifier) {
     try {
       if (Hive.isBoxOpen(_authVaultBoxName)) {
@@ -88,7 +105,7 @@ class OfflineAuthVault {
         final Map<String, dynamic> userJson = Map<String, dynamic>.from(data['user_json']);
         final user = UserAccount.fromJson(userJson);
 
-        if (user.status == AccountStatus.approved) {
+        if (user.status == AccountStatus.approved && !user.isDeleted) {
           return user;
         }
       }
