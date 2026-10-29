@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'offline_sync_service.dart';
 import 'offline_auth_vault.dart';
+import 'laravel_api_service.dart';
 import '../models/user_model.dart';
 
 class DummyUserService {
@@ -26,6 +27,31 @@ class UserNotifier extends StateNotifier<List<UserAccount>> {
 
   Future<void> loadUsers({bool? silent}) async {
     _loadFromCache();
+    await fetchRemoteUsers();
+  }
+
+  Future<void> fetchRemoteUsers() async {
+    try {
+      final remoteList = await LaravelApiService.fetchUsers();
+      if (remoteList.isNotEmpty) {
+        final List<UserAccount> remoteUsers = remoteList
+            .map((u) => UserAccount.fromJson(Map<String, dynamic>.from(u)))
+            .toList();
+
+        final Map<String, UserAccount> userMap = {};
+        for (final u in state) {
+          userMap[u.id] = u;
+        }
+        for (final u in remoteUsers) {
+          userMap[u.id] = u;
+        }
+
+        state = userMap.values.toList();
+        _saveToCache();
+      }
+    } catch (e) {
+      debugPrint('UserNotifier fetchRemoteUsers error: $e');
+    }
   }
 
   void _loadFromCache() {

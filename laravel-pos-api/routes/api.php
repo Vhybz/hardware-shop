@@ -11,6 +11,7 @@ Route::prefix('v1')->group(function () {
     // Public Auth Endpoints
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::get('/users', [AuthController::class, 'getUsers']);
 
     // Public Product & Sale Sync Endpoints (Local POS sync)
     Route::get('/products', [ProductController::class, 'index']);

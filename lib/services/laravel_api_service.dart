@@ -104,6 +104,24 @@ class LaravelApiService {
     throw Exception('Failed to fetch user profile');
   }
 
+  /// Fetch users list from Laravel API
+  static Future<List<dynamic>> fetchUsers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('LaravelApiService fetchUsers Error: $e');
+    }
+    return [];
+  }
+
   /// Fetch products list for a branch
   static Future<List<dynamic>> fetchProducts(String branchCode) async {
     final response = await http.get(
