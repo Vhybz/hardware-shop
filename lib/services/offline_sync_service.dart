@@ -69,6 +69,7 @@ class OfflineSyncService {
     await _openSecureBox<Map>(branchesBoxName, encryptionKey);
 
     _listenToConnectivity();
+    unawaited(processQueue());
   }
 
   static void _listenToConnectivity() {
@@ -149,29 +150,33 @@ class OfflineSyncService {
     final results = await Connectivity().checkConnectivity();
     if (results.every((result) => result == ConnectivityResult.none)) return;
 
-    if (!Hive.isBoxOpen(queueBoxName)) return;
-    final box = Hive.box(queueBoxName);
-    if (box.isEmpty) return;
-
     _isProcessing = true;
-    final List<dynamic> keys = List.from(box.keys);
-    final List<Map<String, dynamic>> batchPayloads = [];
-
-    for (final key in keys) {
-      final item = box.get(key);
-      if (item == null) continue;
-      batchPayloads.add(Map<String, dynamic>.from(item));
-    }
 
     try {
-      if (batchPayloads.isNotEmpty) {
-        final success = await LaravelApiService.processBatchSync(batchPayloads);
-        if (success) {
-          await box.clear();
+      if (Hive.isBoxOpen(queueBoxName)) {
+        final box = Hive.box(queueBoxName);
+        if (box.isNotEmpty) {
+          final List<dynamic> keys = List.from(box.keys);
+          final List<Map<String, dynamic>> batchPayloads = [];
+
+          for (final key in keys) {
+            final item = box.get(key);
+            if (item == null) continue;
+            batchPayloads.add(Map<String, dynamic>.from(item));
+          }
+
+          if (batchPayloads.isNotEmpty) {
+            final success = await LaravelApiService.processBatchSync(batchPayloads);
+            if (success) {
+              await box.clear();
+            }
+          }
         }
       }
+
       await syncAllLocalDataToCloud();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('processQueue error: $e');
     } finally {
       _isProcessing = false;
     }

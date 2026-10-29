@@ -56,17 +56,62 @@ class SyncController extends Controller {
                         break;
                     case 'SALE':
                         if (isset($payload['id'])) {
-                            Sale::updateOrCreate(['id' => $payload['id']], $payload);
+                            $payments = $payload['payments'] ?? [];
+                            Sale::updateOrCreate(
+                                ['id' => $payload['id']],
+                                [
+                                    'id' => $payload['id'],
+                                    'branch_code' => $payload['branch_code'] ?? 'MAIN',
+                                    'cashier_id' => $payload['cashier_id'] ?? null,
+                                    'cashier_name' => $payload['cashier_name'] ?? 'Cashier',
+                                    'customer_id' => $payload['customer_id'] ?? null,
+                                    'customer_name' => $payload['customer_name'] ?? null,
+                                    'customer_phone' => $payload['customer_phone'] ?? null,
+                                    'total_amount' => $payload['total_amount'] ?? 0,
+                                    'amount_paid' => $payload['amount_paid'] ?? $payload['total_amount'] ?? 0,
+                                    'balance' => $payload['balance'] ?? 0,
+                                    'discount_amount' => $payload['total_discount'] ?? 0,
+                                    'status' => $payload['status'] ?? 'completed',
+                                    'payments' => $payments,
+                                    'items' => $payload['items'] ?? [],
+                                    'timestamp' => $payload['timestamp'] ?? now(),
+                                ]
+                            );
                         }
                         break;
                     case 'UPDATE_PRODUCT':
                         if (isset($payload['id'])) {
-                            Product::updateOrCreate(['id' => $payload['id']], $payload);
+                            Product::updateOrCreate(
+                                ['id' => $payload['id']],
+                                [
+                                    'id' => $payload['id'],
+                                    'branch_code' => $payload['branch_code'] ?? 'MAIN',
+                                    'name' => $payload['name'] ?? 'Product',
+                                    'category' => $payload['category'] ?? 'General',
+                                    'retail_price' => $payload['retail_price'] ?? $payload['retailPrice'] ?? 0,
+                                    'wholesale_price' => $payload['wholesale_price'] ?? $payload['wholesalePrice'] ?? 0,
+                                    'cost_price' => $payload['cost_price'] ?? $payload['costPrice'] ?? 0,
+                                    'stock_quantity' => $payload['stock_quantity'] ?? $payload['stockQuantity'] ?? 0,
+                                    'sku' => $payload['sku'] ?? null,
+                                    'unit' => $payload['unit'] ?? 'pcs',
+                                ]
+                            );
                         }
                         break;
                     case 'CUSTOMER':
                         if (isset($payload['id'])) {
-                            Customer::updateOrCreate(['id' => $payload['id']], $payload);
+                            Customer::updateOrCreate(
+                                ['id' => $payload['id']],
+                                [
+                                    'id' => $payload['id'],
+                                    'name' => $payload['name'] ?? 'Customer',
+                                    'phone' => $payload['phone'] ?? null,
+                                    'email' => $payload['email'] ?? null,
+                                    'address' => $payload['address'] ?? null,
+                                    'total_purchases' => $payload['total_purchases'] ?? $payload['totalPurchases'] ?? 0,
+                                    'debt_amount' => $payload['debt_amount'] ?? $payload['debtAmount'] ?? 0,
+                                ]
+                            );
                         }
                         break;
                     case 'EXPENSE':
@@ -82,7 +127,7 @@ class SyncController extends Controller {
                 }
                 $processed++;
             } catch (\Exception $e) {
-                // Log and continue processing
+                // Log and continue
             }
         }
 
