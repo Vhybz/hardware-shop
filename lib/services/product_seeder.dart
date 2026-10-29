@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/uuid_utils.dart';
-import '../models/product.dart';
 import 'product_service.dart';
 import 'user_provider.dart';
 import 'sale_provider.dart';

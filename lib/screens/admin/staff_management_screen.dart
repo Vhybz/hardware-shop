@@ -16,7 +16,6 @@ import '../../widgets/role_pop_scope.dart';
 import '../../services/sms_service.dart';
 import '../../widgets/passcode_guard.dart';
 import '../../widgets/app_avatar_image.dart';
-import '../../services/report_service.dart';
 
 class StaffManagementScreen extends ConsumerStatefulWidget {
   const StaffManagementScreen({super.key});
@@ -518,13 +517,6 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
           backgroundColor: roleColor.withValues(alpha: 0.1),
         ),
       ),
-    );
-  }
-
-  Widget _fallbackAvatar(UserAccount user, Color color, double size) {
-    return Container(
-      color: color.withValues(alpha: 0.1),
-      child: Icon(_getRoleIcon(user.activePrimaryRole), color: color, size: size * 0.5),
     );
   }
 

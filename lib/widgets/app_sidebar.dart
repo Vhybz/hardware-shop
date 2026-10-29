@@ -85,7 +85,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     final themeState = ref.watch(themeProvider);
     final bool isDark = themeState.mode == ThemeMode.dark;
     final user = ref.watch(currentUserProvider);
-    final role = user?.activePrimaryRole;
     
     final Color roleColor = isDark 
         ? (theme.appBarTheme.backgroundColor ?? const Color(0xFF1E1E1E))
@@ -351,52 +350,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
         ),
       ),
     );
-  }
-
-  Color _getMenuItemColor(SidebarItem item) {
-    if (item.iconColor != null) return item.iconColor!;
-    switch (item.route) {
-      case '/admin':
-        return Colors.blue;
-      case '/admin/sales':
-        return const Color(0xFF30D158); // Emerald Green
-      case '/admin/customers':
-        return Colors.purpleAccent;
-      case '/admin/returns':
-        return const Color(0xFFFF453A); // Coral Red
-      case '/admin/debts':
-        return Colors.redAccent;
-      case '/admin/stock':
-        return Colors.tealAccent;
-      case '/warehouse':
-        return Colors.amber;
-      case '/admin/product-report':
-        return Colors.pinkAccent;
-      case '/admin/expenses':
-        return Colors.red.shade400;
-      case '/admin/tax':
-        return Colors.amber.shade400;
-      case '/admin/salaries':
-        return Colors.cyan;
-      case '/admin/documents':
-        return Colors.lightBlueAccent;
-      case '/admin/staff':
-        return Colors.indigoAccent;
-      case '/admin/recents':
-        return Colors.lightGreenAccent;
-      case '/admin/audit':
-        return Colors.blueGrey;
-      case '/admin/maintenance':
-        return Colors.orange;
-      case '/cashier':
-        return const Color(0xFF30D158); // POS Green
-      case '/settings':
-        return Colors.grey.shade300;
-      case '/about':
-        return Colors.blueAccent;
-      default:
-        return Colors.white70;
-    }
   }
 
   Widget _buildMenuItem(BuildContext context, WidgetRef ref, SidebarItem item, bool isSelected, Color textColor, Color subtextColor, bool isLightBg) {

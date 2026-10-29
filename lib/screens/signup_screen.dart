@@ -154,7 +154,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     final size = MediaQuery.of(context).size;
     final bool isMobile = size.width < 600;
 
-    const bgTop = Color(0xFF1C1917); // Rich Warm Onyx
     const bgBottom = Color(0xFF09090B); // Deep Hardware Black
     const accentYellow = Color(0xFFF59E0B); // Hardware DeWalt Amber Yellow
     const lightYellow = Color(0xFFFBBF24); // Vivid Construction Yellow
@@ -609,7 +608,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
           'phone': _phoneController.text.trim(),
           'gender': _selectedGender,
           'dob': _selectedDob?.toIso8601String(),
-          'role': (existingProfile?.role ?? _selectedRole ?? UserRole.cashier).name,
+          'role': (existingProfile?.role ?? _selectedRole).name,
           'branch_code': existingProfile?.branchCode ?? branchCode,
           'status': (isFirstAdmin || isSuperAdmin || existingProfile != null) ? 'approved' : 'pending',
         };
@@ -765,7 +764,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                   surface: Color(0xFF18181B),
                   onSurface: Colors.white,
                 ),
-                dialogBackgroundColor: const Color(0xFF18181B),
+                dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF18181B)),
               ),
               child: child!,
             );

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/product.dart';
-import '../models/system_models.dart';
 import 'user_provider.dart';
 import 'offline_sync_service.dart';
 import 'laravel_api_service.dart';
@@ -351,9 +350,7 @@ class ProductNotifier extends StateNotifier<AsyncValue<List<Product>>> {
         product = products.where((p) => p.id == id).firstOrNull;
       }
 
-      if (product == null) {
-        product = await _service.getProductById(id);
-      }
+      product ??= await _service.getProductById(id);
 
       final double calculatedVal = product.stockQuantity + quantityChange;
       final newQuantity = product.isUnlimited

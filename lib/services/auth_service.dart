@@ -10,7 +10,7 @@ class AuthService {
     final payload = <String, dynamic>{
       'email': email,
       'password': password,
-      if (extraData != null) ...extraData,
+      ...?extraData,
     };
     try {
       return await LaravelApiService.register(payload);

@@ -16,7 +16,6 @@ import '../../widgets/app_sidebar.dart';
 import '../../services/menu_service.dart';
 import '../../services/user_provider.dart';
 import '../../models/user_model.dart';
-import '../../services/transfer_provider.dart';
 import '../../widgets/passcode_guard.dart';
 import '../../widgets/app_cached_image.dart';
 
@@ -1393,7 +1392,7 @@ class _InventoryControlScreenState extends ConsumerState<InventoryControlScreen>
                 ),
                 const SizedBox(height: AppSpacing.m),
                 DropdownButtonFormField<String>(
-                  value: (allowRetail && allowWholesale)
+                  initialValue: (allowRetail && allowWholesale)
                       ? 'both'
                       : ((allowRetail && !allowWholesale) ? 'retail_only' : 'wholesale_only'),
                   decoration: InputDecoration(
@@ -2006,7 +2005,7 @@ class _InventoryControlScreenState extends ConsumerState<InventoryControlScreen>
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: (allowRetail && allowWholesale)
+                    initialValue: (allowRetail && allowWholesale)
                         ? 'both'
                         : ((allowRetail && !allowWholesale) ? 'retail_only' : 'wholesale_only'),
                     decoration: InputDecoration(
@@ -3333,7 +3332,7 @@ class _InventoryControlScreenState extends ConsumerState<InventoryControlScreen>
               const Text('Reassign products to another category:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedReassignTarget,
+                initialValue: selectedReassignTarget,
                 decoration: const InputDecoration(
                   labelText: 'Target Category',
                   border: OutlineInputBorder(),

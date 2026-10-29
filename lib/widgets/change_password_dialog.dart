@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../core/constants.dart';
 import '../services/offline_auth_vault.dart';
 
 class ChangePasswordDialog extends StatefulWidget {

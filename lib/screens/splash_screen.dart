@@ -150,7 +150,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
   Widget build(BuildContext context) {
     const bgBottom = Color(0xFF09090B); // Deep Hardware Black
     const accentYellow = Color(0xFFCC7722); // Hardware DeWalt Amber Yellow (#CC7722)
-    const lightYellow = Color(0xFFFBBF24); // Vivid Construction Yellow
 
     final size = MediaQuery.of(context).size;
     final double tapeWidth = math.min(320.0, size.width * 0.88);

@@ -435,12 +435,4 @@ class _AccountSwitchDialogState extends ConsumerState<AccountSwitchDialog> {
       case UserRole.cashier: return Colors.blue;
     }
   }
-
-  IconData _getRoleIcon(UserRole role) {
-    switch (role) {
-      case UserRole.superAdmin: return Icons.security;
-      case UserRole.admin: return Icons.admin_panel_settings;
-      case UserRole.cashier: return Icons.point_of_sale;
-    }
-  }
 }

@@ -118,17 +118,6 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  static String _getFallbackCategoryAsset(String catName, String prodName) {
-    return 'assets/logo/logo.jpg';
-  }
-
-  Widget _buildErrorIcon(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Icon(Icons.image, color: Theme.of(context).dividerColor),
-    );
-  }
-
   Widget _buildFormattedName(String name, TextStyle baseStyle) {
     if (!name.contains('(')) {
       return Text(name, style: baseStyle, maxLines: 2, overflow: TextOverflow.ellipsis);

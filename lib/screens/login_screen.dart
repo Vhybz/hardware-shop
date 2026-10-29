@@ -67,14 +67,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         userAccount ??= UserAccount.fromJson(userMap);
         await ref.read(userProvider.notifier).addAccount(userAccount);
 
-        if (userAccount == null) {
-          await GlobalLogout.perform(ref);
-          if (mounted) {
-            _showMessage(AppStrings.profileMissingTitle, AppStrings.profileMissingMessage);
-          }
-          return;
-        }
-
         if (userAccount.status == AccountStatus.pending) {
           await GlobalLogout.perform(ref);
           if (mounted) {
