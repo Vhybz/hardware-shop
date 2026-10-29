@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
-echo "=== Setting up Git Safe Directory ==="
+echo "=== Git Safe Directory ==="
 git config --global --add safe.directory "*"
 
 if [ ! -d "flutter" ]; then
-  echo "=== Cloning Flutter SDK (stable) ==="
+  echo "=== Cloning Flutter SDK ==="
   git clone https://github.com/flutter/flutter.git -b stable --depth 1 flutter
 fi
 
@@ -14,8 +14,9 @@ export PATH="$PATH:$(pwd)/flutter/bin"
 echo "=== Flutter SDK Version ==="
 flutter --version
 
-echo "=== Installing Dependencies ==="
+echo "=== Resolving Dependencies ==="
+rm -f pubspec.lock
 flutter pub get
 
-echo "=== Building Flutter Web (Release) ==="
+echo "=== Building Flutter Web ==="
 flutter build web --release --no-tree-shake-icons
