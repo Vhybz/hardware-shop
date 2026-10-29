@@ -132,10 +132,6 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
       debugPrint('recordSale error: $e');
     }
   }
-    } catch (e) {
-      debugPrint('recordSale error: $e');
-    }
-  }
 }
 
 final saleHistoryProvider =
