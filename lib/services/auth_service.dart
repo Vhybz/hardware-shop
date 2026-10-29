@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'laravel_api_service.dart';
 
 class AuthService {
@@ -14,7 +15,8 @@ class AuthService {
     };
     try {
       return await LaravelApiService.register(payload);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AuthService.signUp Error: $e');
       // Fallback for offline mode or unconfigured server
       final userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
       return {

@@ -7,16 +7,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class LaravelApiService {
   static String get baseUrl {
     final envUrl = dotenv.env['LARAVEL_API_URL'];
-    if (kIsWeb) {
-      if (envUrl != null && envUrl.isNotEmpty && !envUrl.contains('10.0.2.2')) {
-        return envUrl;
-      }
-      return 'http://127.0.0.1:8000/api/v1';
-    }
     if (envUrl != null && envUrl.isNotEmpty) {
+      if (kIsWeb && envUrl.contains('10.0.2.2')) {
+        return 'http://127.0.0.1:8000/api/v1';
+      }
       return envUrl;
     }
-    return 'https://api.adomhardware.com/api/v1';
+    return 'https://adom-pos-api.onrender.com/api/v1';
   }
 
   static String? get _token {
