@@ -43,7 +43,11 @@ class UserNotifier extends StateNotifier<List<UserAccount>> {
           userMap[u.id] = u;
         }
         for (final u in remoteUsers) {
-          userMap[u.id] = u;
+          final existing = userMap[u.id];
+          final effectivePhoto = (u.photoUrl != null && u.photoUrl!.trim().isNotEmpty)
+              ? u.photoUrl
+              : existing?.photoUrl;
+          userMap[u.id] = u.copyWith(photoUrl: effectivePhoto);
         }
 
         state = userMap.values.toList();
@@ -141,7 +145,23 @@ class UserNotifier extends StateNotifier<List<UserAccount>> {
   }
 
   Future<void> addAccount(UserAccount user) async {
-    state = [...state, user];
+    final existingIndex = state.indexWhere(
+      (u) => u.id == user.id || u.email.toLowerCase() == user.email.toLowerCase(),
+    );
+    if (existingIndex != -1) {
+      final existing = state[existingIndex];
+      final effectivePhoto = (user.photoUrl != null && user.photoUrl!.trim().isNotEmpty)
+          ? user.photoUrl
+          : existing.photoUrl;
+      final merged = user.copyWith(photoUrl: effectivePhoto);
+      state = [
+        ...state.sublist(0, existingIndex),
+        merged,
+        ...state.sublist(existingIndex + 1),
+      ];
+    } else {
+      state = [...state, user];
+    }
     _saveToCache();
   }
 
