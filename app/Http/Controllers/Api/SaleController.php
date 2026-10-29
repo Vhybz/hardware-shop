@@ -11,45 +11,44 @@ use App\Models\Product;
 class SaleController extends Controller {
 
     public function store(Request $request) {
-        $validated = $request->validate([
-            'id' => 'required|string',
-            'branch_code' => 'required|string',
-            'cashier_id' => 'nullable|string',
-            'cashier_name' => 'required|string',
-            'total_amount' => 'required|numeric',
-            'amount_paid' => 'required|numeric',
-            'balance' => 'required|numeric',
-            'status' => 'required|string',
-            'items' => 'required|array',
-            'payments' => 'required|array',
-        ]);
+        $data = $request->all();
+        $id = $data['id'] ?? uniqid('sale_');
+        $totalAmount = $data['total_amount'] ?? $data['totalAmount'] ?? 0;
+        $payments = $data['payments'] ?? [];
+        $amountPaid = $data['amount_paid'] ?? $data['amountPaid'] ?? $totalAmount;
+        $balance = $data['balance'] ?? 0;
 
-        return DB::transaction(function () use ($validated, $request) {
+        return DB::transaction(function () use ($data, $id, $totalAmount, $payments, $amountPaid, $balance) {
             $sale = Sale::updateOrCreate(
-                ['id' => $validated['id']],
+                ['id' => $id],
                 [
-                    'branch_code' => $validated['branch_code'],
-                    'cashier_id' => $validated['cashier_id'],
-                    'cashier_name' => $validated['cashier_name'],
-                    'customer_id' => $request->input('customer_id'),
-                    'customer_name' => $request->input('customer_name'),
-                    'customer_phone' => $request->input('customer_phone'),
-                    'total_amount' => $validated['total_amount'],
-                    'amount_paid' => $validated['amount_paid'],
-                    'balance' => $validated['balance'],
-                    'discount_amount' => $request->input('discount_amount', 0),
-                    'status' => $validated['status'],
-                    'items' => $validated['items'],
-                    'payments' => $validated['payments'],
-                    'timestamp' => now(),
+                    'id' => $id,
+                    'branch_code' => $data['branch_code'] ?? $data['branchCode'] ?? 'MAIN',
+                    'cashier_id' => $data['cashier_id'] ?? $data['cashierId'] ?? null,
+                    'cashier_name' => $data['cashier_name'] ?? $data['cashierName'] ?? 'Cashier',
+                    'customer_id' => $data['customer_id'] ?? $data['customerId'] ?? null,
+                    'customer_name' => $data['customer_name'] ?? $data['customerName'] ?? null,
+                    'customer_phone' => $data['customer_phone'] ?? $data['customerPhone'] ?? null,
+                    'total_amount' => $totalAmount,
+                    'amount_paid' => $amountPaid,
+                    'balance' => $balance,
+                    'discount_amount' => $data['total_discount'] ?? $data['discount_amount'] ?? 0,
+                    'status' => $data['status'] ?? 'completed',
+                    'items' => $data['items'] ?? [],
+                    'payments' => $payments,
+                    'timestamp' => $data['timestamp'] ?? now(),
                 ]
             );
 
             // Atomic stock decrement
-            foreach ($validated['items'] as $item) {
-                if (isset($item['product_id']) && isset($item['quantity'])) {
-                    Product::where('id', $item['product_id'])
-                        ->decrement('stock_quantity', $item['quantity']);
+            $items = $data['items'] ?? [];
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $prodId = $item['product_id'] ?? $item['product']['id'] ?? null;
+                    $qty = $item['quantity'] ?? 0;
+                    if ($prodId && $qty > 0) {
+                        Product::where('id', $prodId)->decrement('stock_quantity', $qty);
+                    }
                 }
             }
 
