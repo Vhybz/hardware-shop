@@ -847,7 +847,7 @@ class _InventoryControlScreenState extends ConsumerState<InventoryControlScreen>
                             : ListView.separated(
                                 padding: const EdgeInsets.all(4),
                                 itemCount: filteredProducts.length,
-                                separatorBuilder: (_, _) => const SizedBox(height: 6),
+                                separatorBuilder: (context, index) => const SizedBox(height: 6),
                                 itemBuilder: (context, index) {
                                   final p = filteredProducts[index];
                                   final isSelected = selectedIds.contains(p.id);
