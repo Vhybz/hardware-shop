@@ -109,8 +109,12 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
       state = [sale, ...state];
 
       try {
-        await LaravelApiService.submitSale(sale.toJson());
-      } catch (_) {
+        final success = await LaravelApiService.submitSale(sale.toJson());
+        if (!success) {
+          await OfflineSyncService.addToQueue('SALE', sale.toJson());
+        }
+      } catch (e) {
+        debugPrint('submitSale API error, queueing offline: $e');
         await OfflineSyncService.addToQueue('SALE', sale.toJson());
       }
 

@@ -150,13 +150,21 @@ class LaravelApiService {
 
   /// Submit sale transaction
   static Future<bool> submitSale(Map<String, dynamic> saleJson) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/sales'),
-      headers: _headers,
-      body: jsonEncode(saleJson),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/sales'),
+        headers: _headers,
+        body: jsonEncode(saleJson),
+      );
 
-    return response.statusCode == 201 || response.statusCode == 200;
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return true;
+      }
+      throw Exception('Server returned ${response.statusCode}: ${response.body}');
+    } catch (e) {
+      debugPrint('LaravelApiService submitSale Error: $e');
+      rethrow;
+    }
   }
 
   /// Process offline batch queue sync
