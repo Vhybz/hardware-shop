@@ -1,0 +1,16 @@
+CITY COSMETICS POS - SYSTEM DOCUMENTATION
+USER ROLE: INVENTORY & STOCK MANAGER
+
+1. YOUR ROLE IN THE SYSTEM
+The Inventory & Stock Manager is responsible for product cataloging, stock receiving, barcode label generation, and batch/expiry tracking for all cosmetic products in the store.
+
+2. CORE WORKFLOWS
+- Product Intake & Registration: Record new cosmetics inventory batches upon arrival, including supplier cost, quantity, category, and expiry dates.
+- Barcode Generation: Print and attach unique barcode labels to cosmetic packages and display shelves.
+- Stock Transfer: Manage transfers between store branches or stockrooms.
+- Stock Audit & Reconciliation: Conduct regular stock takes and reconcile physical inventory with POS numbers.
+
+3. ETHICAL USAGE GUIDELINES
+- Accuracy: Record exact quantities, cost prices, and expiration dates.
+- Expiry Protection: Monitor shelf life to prevent selling expired cosmetic items.
+- Transparency: Record any damaged, expired, or lost stock accurately.

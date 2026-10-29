@@ -1,0 +1,43 @@
+========================================================================
+CITY COSMETICS POS - PROJECT OVERVIEW
+========================================================================
+
+1. CORE PURPOSE
+---------------
+City Cosmetics POS is an end-to-end management system for cosmetic shops
+and beauty retail enterprises. It automates inventory control, product batch
+tracking, barcode label scanning, and high-speed Point-of-Sale (POS) with
+integrated debt management and sales reporting.
+
+
+2. TECHNICAL STACK
+------------------
+* Frontend: Flutter (SDK ^3.11.5)
+* State Management: flutter_riverpod (using riverpod_generator)
+* Backend: Supabase (Postgres, Realtime, Auth, Storage)
+* Local Data/Offline: Hive (Sync Queue), Drift (SQLite persistence)
+* Hardware: printing & pdf packages (Thermal labels/Receipts)
+* Notifications: Arkesel SMS Gateway Integration
+
+
+3. KEY FEATURES
+---------------
+* Offline-First Sync Engine (lib/services/offline_sync_service.dart):
+  Validation of the Hive-based queue and conflict resolution when
+  device reconnects with multiple pending updates.
+
+* Point-of-Sale & Inventory:
+  - Cosmetic Inventory & Barcode Tracking
+  - Debt/Credit Customer Management
+  - Automated Sales Summaries & Receipts
+
+
+4. DATABASE ARCHITECTURE (Key Entities)
+---------------------------------------
+* products: Cosmetic item catalog & stock levels.
+* sales: Transaction records and receipt generation.
+* stock_transfers: Branch-to-branch movement auditing.
+
+
+Generated for Technical Review
+========================================================================

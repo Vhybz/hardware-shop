@@ -1,0 +1,24 @@
+CITY COSMETICS POS - SYSTEM DOCUMENTATION
+USER ROLE: CASHIER (RETAIL & CUSTOMER SERVICE)
+
+1. YOUR ROLE IN THE SYSTEM
+The Cashier is the face of City Cosmetics and the final gatekeeper of the company's revenue. You are responsible for receiving stock, processing sales accurately, managing customer profiles, and tracking outstanding debts.
+
+2. CORE WORKFLOWS
+- Incoming Stock Verification: When stock arrives, go to "Verify Incoming Stock." You can use your device's camera or external barcode scanner to scan incoming items to update inventory.
+- Point of Sale (POS): Process customer orders efficiently. Toggle between Retail and Wholesale prices in the top toolbar as needed.
+- Customer Management: Register regular customers. Loyal customers marked as "Favorites" receive automated discounts on their purchases.
+- Debt Tracking: If a customer buys on credit, select their profile in the system before finalizing the sale. Record every partial payment accurately.
+- Daily Sales Report: Monitor daily sales performance, total revenue, discounts given, and top-selling cosmetic products.
+- AI Support: Tap the Sparkles icon in the top toolbar to ask the AI assistant for product details, customer service tips, or payment processing help.
+
+3. ETHICAL USAGE GUIDELINES
+- Financial Honesty: Ensure every payment (Cash, MoMo, or Bank Deposit) is recorded for its exact amount.
+- Stock Integrity: Do not sell items without logging them in the POS.
+- Privacy: Maintain customer confidentiality.
+- Transparency: Always offer the customer a receipt (digital, SMS, or thermal print).
+
+4. TIPS FOR SUCCESS
+- System Alerts: Check the notification bell regularly for low-stock warnings.
+- Offline Mode: If network connection drops, the POS continues working in Offline Mode and syncs automatically when connection restores.
+- Printing Receipts: Ensure thermal printer is connected via Bluetooth/USB before starting shift.

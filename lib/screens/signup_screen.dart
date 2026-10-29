@@ -1,0 +1,830 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../core/constants.dart';
+import '../models/user_model.dart';
+import '../models/branch_model.dart';
+import '../services/user_provider.dart';
+import '../services/branch_provider.dart';
+import '../services/auth_provider.dart';
+import '../services/sms_service.dart';
+
+class SignupScreen extends ConsumerStatefulWidget {
+  const SignupScreen({super.key});
+
+  @override
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _branchNameController = TextEditingController();
+  final _branchLocationController = TextEditingController();
+  
+  DateTime? _selectedDob;
+  String? _selectedGender;
+  UserRole _selectedRole = UserRole.cashier;
+  String? _selectedBranchCode;
+  bool _isCreatingBranch = false;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _phoneExists = false;
+  Timer? _debounce;
+
+  double _strength = 0;
+  String _strengthLabel = 'None';
+  Color _strengthColor = Colors.grey;
+
+  late AnimationController _breathingController;
+  late Animation<double> _breathingAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _breathingAnimation = Tween<double>(begin: 0.06, end: 0.20).animate(
+      CurvedAnimation(parent: _breathingController, curve: Curves.easeInOut),
+    );
+    _passwordController.addListener(_checkPasswordStrength);
+    _phoneController.addListener(_onPhoneChanged);
+    
+    // Ensure we have current user data loaded if an admin is logged in
+    // and using this screen to create a staff account.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(currentUserIdProvider) != null) {
+        ref.read(userProvider.notifier).loadUsers(silent: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _breathingController.dispose();
+    _passwordController.removeListener(_checkPasswordStrength);
+    _phoneController.removeListener(_onPhoneChanged);
+    _debounce?.cancel();
+    _firstNameController.dispose();
+    _surnameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _checkPasswordStrength() {
+    final pass = _passwordController.text;
+    double score = 0;
+
+    if (pass.isEmpty) {
+      setState(() {
+        _strength = 0;
+        _strengthLabel = 'None';
+        _strengthColor = Colors.grey;
+      });
+      return;
+    }
+
+    if (pass.length >= 6) score += 0.25;
+    if (pass.length >= 10) score += 0.25;
+    if (RegExp(r'[A-Z]').hasMatch(pass)) score += 0.25;
+    if (RegExp(r'[0-9]').hasMatch(pass)) score += 0.15;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(pass)) score += 0.1;
+
+    setState(() {
+      _strength = score;
+      if (score <= 0.25) {
+        _strengthLabel = 'Weak';
+        _strengthColor = Colors.red;
+      } else if (score <= 0.6) {
+        _strengthLabel = 'Fair';
+        _strengthColor = Colors.orange;
+      } else if (score <= 0.8) {
+        _strengthLabel = 'Good';
+        _strengthColor = Colors.blue;
+      } else {
+        _strengthLabel = 'Strong';
+        _strengthColor = Colors.green;
+      }
+    });
+  }
+
+  void _onPhoneChanged() {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      final phone = _phoneController.text.trim();
+      if (phone.length == 10) {
+        final exists = await ref.read(userProvider.notifier).checkPhoneExists(phone);
+        if (mounted) {
+          setState(() {
+            _phoneExists = exists;
+          });
+        }
+      } else {
+        if (_phoneExists) {
+          setState(() {
+            _phoneExists = false;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final branchesAsync = ref.watch(branchesProvider);
+    final branches = branchesAsync.value ?? [];
+    final noBranchesExist = branches.isEmpty && !branchesAsync.isLoading;
+    final size = MediaQuery.of(context).size;
+    final bool isMobile = size.width < 600;
+
+    const bgTop = Color(0xFF1C1917); // Rich Warm Onyx
+    const bgBottom = Color(0xFF09090B); // Deep Hardware Black
+    const accentYellow = Color(0xFFF59E0B); // Hardware DeWalt Amber Yellow
+    const lightYellow = Color(0xFFFBBF24); // Vivid Construction Yellow
+
+    return Scaffold(
+      backgroundColor: bgBottom,
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: _breathingAnimation,
+          builder: (context, child) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    accentYellow.withValues(alpha: _breathingAnimation.value),
+                    const Color(0xFF1C1917),
+                    bgBottom,
+                  ],
+                ),
+              ),
+              child: child,
+            );
+          },
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                vertical: isMobile ? 20 : 40, 
+                horizontal: isMobile ? 10 : 20
+              ),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 550),
+                width: size.width * (isMobile ? 0.95 : 0.8),
+                padding: EdgeInsets.all(isMobile ? AppSpacing.l : AppSpacing.xl),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF18181B),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.6), 
+                      blurRadius: 24, 
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: accentYellow.withValues(alpha: 0.15),
+                      blurRadius: 15,
+                    ),
+                  ],
+                  border: Border.all(color: accentYellow.withValues(alpha: 0.35), width: 1.5),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Fixed Header Section
+                    Container(
+                      padding: EdgeInsets.all(isMobile ? AppSpacing.m : AppSpacing.xl),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: isMobile ? 80 : 100,
+                            height: isMobile ? 80 : 100,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                                BoxShadow(
+                                  color: accentYellow.withValues(alpha: 0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                              border: Border.all(color: accentYellow, width: 3),
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                'assets/logo/logo.jpg',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          const Text(
+                            'Staff Registration',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24, 
+                              fontWeight: FontWeight.w900, 
+                              color: Colors.white,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Apply for an Adom Mmoroso ENT. team account',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: lightYellow, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: accentYellow.withValues(alpha: 0.3)),
+                    // Form Section
+                    Padding(
+                      padding: EdgeInsets.all(isMobile ? AppSpacing.m : AppSpacing.xl),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            if (isMobile) ...[
+                              _buildTextField(context, _firstNameController, 'First Name', Icons.person_outline, isName: true),
+                              const SizedBox(height: AppSpacing.m),
+                              _buildTextField(context, _surnameController, 'Surname', Icons.person_outline, isName: true),
+                            ] else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(context, _firstNameController, 'First Name', Icons.person_outline, isName: true),
+                                  ),
+                                  const SizedBox(width: AppSpacing.m),
+                                  Expanded(
+                                    child: _buildTextField(context, _surnameController, 'Surname', Icons.person_outline, isName: true),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: AppSpacing.m),
+                            
+                            _buildTextField(context, _emailController, 'Email Address', Icons.email_outlined, isEmail: true),
+                            const SizedBox(height: AppSpacing.m),
+                            
+                            _buildTextField(context, _phoneController, 'Phone Number', Icons.phone_android_outlined, isPhone: true),
+                            const SizedBox(height: AppSpacing.m),
+                            
+                            if (isMobile) ...[
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedGender,
+                                dropdownColor: const Color(0xFF27272A),
+                                style: const TextStyle(color: Colors.white),
+                                iconEnabledColor: const Color(0xFFFBBF24),
+                                decoration: _darkInputDecoration('Gender', Icons.wc),
+                                items: ['Male', 'Female', 'Other']
+                                    .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(color: Colors.white))))
+                                    .toList(),
+                                onChanged: (v) => setState(() => _selectedGender = v),
+                                validator: (v) => v == null ? 'Required' : null,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+                              _buildDatePickerTrigger(context),
+                            ] else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      initialValue: _selectedGender,
+                                      dropdownColor: const Color(0xFF27272A),
+                                      style: const TextStyle(color: Colors.white),
+                                      iconEnabledColor: const Color(0xFFFBBF24),
+                                      decoration: _darkInputDecoration('Gender', Icons.wc),
+                                      items: ['Male', 'Female', 'Other']
+                                          .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(color: Colors.white))))
+                                          .toList(),
+                                      onChanged: (v) => setState(() => _selectedGender = v),
+                                      validator: (v) => v == null ? 'Required' : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.m),
+                                  Expanded(
+                                    child: _buildDatePickerTrigger(context),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: AppSpacing.m),
+                            
+                            DropdownButtonFormField<UserRole>(
+                              initialValue: _selectedRole,
+                              dropdownColor: const Color(0xFF27272A),
+                              style: const TextStyle(color: Colors.white),
+                              iconEnabledColor: const Color(0xFFFBBF24),
+                              decoration: _darkInputDecoration('Applying For Role', Icons.work_outline),
+                              items: [UserRole.cashier, UserRole.admin, UserRole.superAdmin].map((r) {
+                                String label;
+                                switch (r) {
+                                  case UserRole.cashier:
+                                    label = 'CASHIER';
+                                    break;
+                                  case UserRole.admin:
+                                    label = 'ADMIN';
+                                    break;
+                                  case UserRole.superAdmin:
+                                    label = 'SUPER ADMIN';
+                                    break;
+                                }
+                                return DropdownMenuItem(value: r, child: Text(label, style: const TextStyle(color: Colors.white)));
+                              }).toList(),
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedRole = v!;
+                                  if (v != UserRole.admin && v != UserRole.superAdmin) _isCreatingBranch = false;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+                            
+                            if (_selectedRole == UserRole.admin || _selectedRole == UserRole.superAdmin) ...[
+                              CheckboxListTile(
+                                title: const Text('Setup New Branch?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                                subtitle: Text(noBranchesExist ? 'Required: No branches found in system.' : 'Create a separate business unit', style: const TextStyle(fontSize: 10, color: Color(0xFFA1A1AA))),
+                                value: _isCreatingBranch || noBranchesExist,
+                                onChanged: noBranchesExist ? null : (v) => setState(() => _isCreatingBranch = v!),
+                                activeColor: accentYellow,
+                                dense: true,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+                            ] else if (noBranchesExist) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'No branches found. Please register as an Admin to setup the first shop location.',
+                                        style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+                            ],
+
+                            if ((_selectedRole == UserRole.admin || _selectedRole == UserRole.superAdmin) && (_isCreatingBranch || noBranchesExist)) ...[
+                              _buildTextField(context, _branchNameController, 'Shop/Branch Name', Icons.store_mall_directory_outlined),
+                              const SizedBox(height: AppSpacing.m),
+                              _buildTextField(context, _branchLocationController, 'Branch Location (City/Town)', Icons.location_on_outlined),
+                              const SizedBox(height: AppSpacing.m),
+                            ] else ...[
+                              DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                initialValue: _selectedBranchCode,
+                                dropdownColor: const Color(0xFF27272A),
+                                style: const TextStyle(color: Colors.white),
+                                iconEnabledColor: const Color(0xFFFBBF24),
+                                decoration: _darkInputDecoration('Select Working Branch', Icons.map_outlined),
+                                items: branches.map((b) => DropdownMenuItem(
+                                  value: b.code,
+                                  child: Text(
+                                    '${b.name} (${b.location})',
+                                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )).toList(),
+                                onChanged: (v) => setState(() => _selectedBranchCode = v),
+                                validator: (v) => v == null && _selectedRole != UserRole.superAdmin ? 'Please select a branch' : null,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+                            ],
+                            
+                            _buildTextField(context, _passwordController, 'Password', Icons.lock_outline, isPassword: true),
+                            if (_passwordController.text.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('Strength: ', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                                      Text(_strengthLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _strengthColor)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  LinearProgressIndicator(
+                                    value: _strength,
+                                    backgroundColor: isDark ? Colors.white10 : Colors.grey.shade200,
+                                    valueColor: AlwaysStoppedAnimation<Color>(_strengthColor),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.m),
+                            _buildTextField(context, _confirmPasswordController, 'Confirm Password', Icons.lock_reset_outlined, isPassword: true),
+                            
+                            const SizedBox(height: AppSpacing.xl),
+                            
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _handleSignup,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: accentYellow,
+                                  foregroundColor: const Color(0xFF18181B),
+                                  elevation: 6,
+                                  shadowColor: accentYellow.withValues(alpha: 0.4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: _isLoading 
+                                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF18181B), strokeWidth: 2)))
+                                    : const Text('Submit Application', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: AppSpacing.l),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text('Already have an account?', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                                TextButton(
+                                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                                  child: const Text('Login', style: TextStyle(fontWeight: FontWeight.bold, color: accentYellow, fontSize: 13)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(BuildContext context, TextEditingController controller, String label, IconData icon, {bool isEmail = false, bool isPassword = false, bool isPhone = false, bool isName = false}) {
+    bool obscure = false;
+    if (isPassword) {
+      if (controller == _passwordController) {
+        obscure = _obscurePassword;
+      } else if (controller == _confirmPasswordController) {
+        obscure = _obscureConfirmPassword;
+      }
+    }
+
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      keyboardType: isEmail ? TextInputType.emailAddress : (isPhone ? TextInputType.phone : (isName ? TextInputType.name : TextInputType.text)),
+      inputFormatters: [
+        if (isEmail || isPassword || isPhone) FilteringTextInputFormatter.deny(RegExp(r'\s')), // No spaces in these
+        if (isName) FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s\-]')), // Names: Letters, spaces, and hyphens
+        if (isPhone) ...[
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
+      ],
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFFA1A1AA)),
+        filled: true,
+        fillColor: const Color(0xFF27272A),
+        prefixIcon: Icon(icon, size: 20, color: const Color(0xFFFBBF24)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF3F3F46)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 2),
+        ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.white60),
+                onPressed: () {
+                  setState(() {
+                    if (controller == _passwordController) {
+                      _obscurePassword = !_obscurePassword;
+                    } else {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    }
+                  });
+                },
+              )
+            : null,
+        hintText: isPhone ? '10 digits' : null,
+        hintStyle: const TextStyle(color: Color(0xFF71717A)),
+      ),
+      validator: (v) {
+        if (v == null || v.isEmpty) return 'Required';
+        if (isEmail && !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) return 'Invalid email';
+        if (isPassword) {
+           if (v.length < 6) return 'Min 6 characters';
+           if (controller == _confirmPasswordController && v != _passwordController.text) return 'Passwords do not match';
+        }
+        if (isPhone) {
+          if (v.length != 10) return 'Exactly 10 digits required';
+        }
+        if (isName && v.length < 2) return 'Too short';
+        return null;
+      },
+    );
+  }
+
+  Future<void> _handleSignup() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+
+      try {
+        final userNotifier = ref.read(userProvider.notifier);
+        final branchesAsync = ref.read(branchesProvider);
+        final noBranchesExist = (branchesAsync.value ?? []).isEmpty;
+        final String email = _emailController.text.trim();
+        final String password = _passwordController.text;
+        String? branchCode = _selectedBranchCode;
+
+        // Ensure user list is up to date for checking existing profile
+        await userNotifier.loadUsers(silent: true);
+        final existingProfiles = ref.read(userProvider);
+        final existingProfile = existingProfiles.where((u) => u.email.toLowerCase() == email.toLowerCase()).firstOrNull;
+
+        if ((_selectedRole == UserRole.admin || _selectedRole == UserRole.superAdmin) && (_isCreatingBranch || noBranchesExist)) {
+          final String bName = _branchNameController.text.trim();
+          final String location = _branchLocationController.text.trim();
+          final String random = (100 + (DateTime.now().millisecond % 900)).toString();
+          
+          branchCode = '${bName.replaceAll(' ', '').toUpperCase()}_${location.replaceAll(' ', '').toUpperCase()}_$random';
+          
+          final newBranch = Branch(
+            code: branchCode,
+            name: bName,
+            location: location,
+          );
+          
+          await ref.read(branchesProvider.notifier).addBranch(newBranch);
+        }
+
+        final authResponse = await ref.read(authServiceProvider).signUp(email, password);
+        final authUser = authResponse.user;
+        
+        if (authUser != null) {
+          final adminExists = await userNotifier.checkIfAnyAdminExists();
+          final isSuperAdmin = _selectedRole == UserRole.superAdmin;
+          final isFirstAdmin = !adminExists && (_selectedRole == UserRole.admin || isSuperAdmin);
+          
+          debugPrint('Signup Trace: AdminExists=$adminExists, SelectedRole=$_selectedRole, IsFirstAdmin=$isFirstAdmin');
+          
+          final newUser = UserAccount(
+            id: authUser.id,
+            firstName: _firstNameController.text.trim(),
+            surname: _surnameController.text.trim(),
+            email: email,
+            phone: _phoneController.text.trim(),
+            gender: _selectedGender,
+            dob: _selectedDob,
+            role: existingProfile?.role ?? _selectedRole,
+            branchCode: existingProfile?.branchCode ?? branchCode,
+            status: existingProfile != null ? AccountStatus.approved : ((isFirstAdmin || isSuperAdmin) ? AccountStatus.approved : AccountStatus.pending),
+            enabledPermissions: existingProfile?.enabledPermissions ?? ((isFirstAdmin || isSuperAdmin)
+              ? {
+                  '/admin',
+                  '/admin/super',
+                  '/admin/sales', 
+                  '/admin/expenses', 
+                  '/admin/customers', 
+                  '/admin/debts', 
+                  '/admin/stock', 
+                  '/admin/product-report',
+                  '/admin/staff',
+                  '/admin/salaries',
+                  '/cashier', 
+                  '/settings'
+                } 
+              : {'/settings'}),
+          );
+
+          try {
+            await userNotifier.addAccount(newUser);
+            if ((_selectedRole == UserRole.admin || _selectedRole == UserRole.superAdmin) && (_isCreatingBranch || noBranchesExist)) {
+              if (branchCode != null) {
+                await ref.read(branchesProvider.notifier).setBranchAdmin(branchCode, newUser.id);
+              }
+            }
+            
+            // SMS Notifications: Sent to both the newly registered user AND the admin(s)
+            try {
+              final isAutoApproved = isFirstAdmin || isSuperAdmin || existingProfile != null;
+
+              if (existingProfile != null) {
+                await SmsService.sendStaffOnboardingSms(newUser);
+              } else {
+                await SmsService.sendSignupConfirmationSms(newUser, isAutoApproved);
+              }
+
+              // Always notify Admin(s) and System Admin about every new signup
+              final allUsers = ref.read(userProvider);
+              await SmsService.sendApprovalRequestSms(newUser, allUsers);
+            } catch (smsErr) {
+              debugPrint('Signup SMS Error: $smsErr');
+            }
+
+            if (mounted) {
+              _showApprovalDialog(isAutoApproved: isFirstAdmin || existingProfile != null);
+            }
+          } catch (dbError) {
+            debugPrint('Signup Database Error: $dbError');
+            if (mounted) {
+              _showErrorDialog('Profile Creation Failed', 'Account was created but we couldn\'t save your profile details. Please contact support. Error: $dbError');
+            }
+          }
+        } else {
+           if (mounted) _showErrorDialog('Auth Failed', 'Account creation returned no user. Please try again.');
+        }
+      } catch (e) {
+        debugPrint('Signup Catch Error: $e');
+        if (mounted) {
+          String errorMsg = e.toString();
+          if (errorMsg.contains('User already registered')) {
+            errorMsg = 'This email address is already in use. Please log in instead.';
+          } else if (errorMsg.contains('weak_password')) {
+            errorMsg = 'Your password is too weak. Please use a stronger password.';
+          }
+          _showErrorDialog('Registration Error', errorMsg);
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  InputDecoration _darkInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Color(0xFFA1A1AA)),
+      filled: true,
+      fillColor: const Color(0xFF27272A),
+      prefixIcon: Icon(icon, size: 20, color: const Color(0xFFFBBF24)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF3F3F46)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+    );
+  }
+
+  Widget _buildDatePickerTrigger(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime(2000),
+          firstDate: DateTime(1950),
+          lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.dark(
+                  primary: Color(0xFFF59E0B),
+                  onPrimary: Color(0xFF18181B),
+                  surface: Color(0xFF18181B),
+                  onSurface: Colors.white,
+                ),
+                dialogBackgroundColor: const Color(0xFF18181B),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) setState(() => _selectedDob = picked);
+      },
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF27272A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF3F3F46)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cake_outlined, size: 20, color: Color(0xFFFBBF24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _selectedDob == null ? 'Date of Birth' : DateFormat('yyyy-MM-dd').format(_selectedDob!), 
+                style: TextStyle(
+                  fontSize: 14, 
+                  color: _selectedDob == null ? const Color(0xFFA1A1AA) : Colors.white,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: Color(0xFFFBBF24)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title, 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            child: Text(message, style: const TextStyle(fontSize: 13)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showApprovalDialog({bool isAutoApproved = false}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+        title: Text(isAutoApproved ? 'Registration Successful' : 'Application Submitted'),
+        content: Text(isAutoApproved 
+          ? 'Your account has been created and approved. You can now log in to access the system.' 
+          : 'Your registration is pending administrator approval. You will be notified via SMS once approved.'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            child: const Text('Go to Login'),
+          ),
+        ],
+      ),
+    );
+  }
+}

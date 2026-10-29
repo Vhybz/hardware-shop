@@ -1,0 +1,23 @@
+CITY COSMETICS POS - SYSTEM DOCUMENTATION
+USER ROLE: ADMINISTRATOR (OWNER/MANAGER)
+
+1. YOUR ROLE IN THE SYSTEM
+The Administrator is the overseer of the entire business ecosystem. You are responsible for the financial health, staff accountability, and strategic growth of City Cosmetics. Your portal provides high-level analytics and control over all workstations.
+
+2. CORE WORKFLOWS
+- Staff Management: Approve new account registrations, assign primary and secondary roles, and manage permissions.
+- Inventory Control: Set the retail, wholesale, and cost prices for all cosmetic products. Monitor stock levels and define low-stock thresholds.
+- Financial Oversight: Review the Dashboard for real-time Gross and Net Profit. Monitor the "Business Expenses" ledger to ensure operational costs are controlled.
+- Product Analytics: Monitor product turnover and sales velocity across categories.
+- Debt Management: Monitor the "Debt Tracker" to ensure customer balances are being collected and verified.
+- AI Assistance: Use the Sparkles icon on your dashboard to ask the AI Assistant for business advice, sales analysis, or system help.
+
+3. ETHICAL USAGE GUIDELINES
+- Data Integrity: Never manipulate sales or expense records to misrepresent the business's financial status.
+- Fairness: Ensure staff roles and salary configurations are managed transparently.
+- Privacy: Protect customer contact information found in the Customer Directory.
+- Accountability: Use the "Audit Logs" to verify actions fairly.
+
+4. SYSTEM MAINTENANCE
+- Regularly review the "System Settings" to ensure branch locations and contact details are up to date.
+- Perform exports of "Daily Sales Reports" and "Expense Ledgers" for accounting and tax compliance.

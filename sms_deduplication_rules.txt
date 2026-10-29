@@ -1,0 +1,85 @@
+================================================================================
+MASTER ARCHITECTURE SPECIFICATION: SMS DEDUPLICATION & SINGLE SOURCE OF RESPONSIBILITY
+================================================================================
+
+Goal:
+Prevent duplicate SMS notifications from being sent to customers when both CityPOS (Staff App) and City Cosmetics Store (Customer App) connect to the same Supabase database.
+
+--------------------------------------------------------------------------------
+1. SINGLE SOURCE OF RESPONSIBILITY (DIVISION OF SMS DUTIES)
+--------------------------------------------------------------------------------
+
+A. STAFF POS APP (CityPOS) RESPONSIBILITIES:
+CityPOS is the ONLY app that sends SMS notifications for Staff Fulfillment Actions & Admin Approvals:
+1. Account Activation SMS: When Admin approves a customer (`status = 'active'`).
+2. Order Approved / Verified SMS: When Staff verifies payment & approves an order (`status = 'approved'`).
+3. Order Dispatched SMS: When Staff dispatches an order (`status = 'dispatched'`).
+4. Order Delivered SMS: When Staff marks an order as delivered (`status = 'delivered'`).
+5. Product Back-in-Stock SMS: When Warehouse Staff intakes stock for requested items.
+
+B. CUSTOMER APP RESPONSIBILITIES:
+The Customer App is the ONLY app that sends SMS notifications for Consumer-Initiated Actions:
+1. Registration Received SMS: Sent immediately upon customer sign-up ("Registration received, under review").
+2. Order Placed Confirmation SMS: Sent immediately upon customer order submission ("Order #123 submitted, awaiting verification").
+3. Password Reset OTP SMS: Sent when a customer requests a password recovery code.
+
+--------------------------------------------------------------------------------
+2. DATABASE TIMESTAMP FLAGGING (PREVENTING RE-SENDS)
+--------------------------------------------------------------------------------
+To guarantee that no event triggers duplicate SMS messages regardless of real-time listeners:
+
+1. `customer_orders` TABLE FLAGGING:
+   - Add columns:
+     - `approved_sms_sent_at` (TIMESTAMP)
+     - `dispatched_sms_sent_at` (TIMESTAMP)
+     - `delivered_sms_sent_at` (TIMESTAMP)
+   - RULE: Before sending an SMS for an order status change, verify the corresponding timestamp column is `NULL`.
+   - On sending SMS: Immediately set `[status]_sms_sent_at = NOW()`.
+   - IF the timestamp column is NOT `NULL`, DO NOT send the SMS!
+
+2. `customers` TABLE FLAGGING:
+   - Add column:
+     - `activation_sms_sent_at` (TIMESTAMP)
+   - RULE: Before sending the Account Activation SMS, check `activation_sms_sent_at IS NULL`.
+   - On sending SMS: Set `activation_sms_sent_at = NOW()`.
+
+3. `product_restock_requests` TABLE FLAGGING:
+   - Columns:
+     - `status` (`'pending'`, `'notified'`)
+     - `notified_at` (TIMESTAMP)
+   - RULE: Only process requests where `status == 'pending'` AND `notified_at IS NULL`.
+   - On sending SMS: Atomically update `status = 'notified'`, `notified_at = NOW()`.
+
+--------------------------------------------------------------------------------
+3. IMPLEMENTATION PSEUDOCODE FOR FLUTTER SERVICES
+--------------------------------------------------------------------------------
+```dart
+Future<void> sendOrderApprovedSmsDeduplicated(CustomerOrder order) async {
+  // 1. Atomic Check: Ensure SMS wasn't already sent
+  final check = await _client
+      .from('customer_orders')
+      .select('approved_sms_sent_at')
+      .eq('id', order.id)
+      .single();
+
+  if (check['approved_sms_sent_at'] != null) {
+    debugPrint('SMS Skipped: Order #${order.orderNumber} approval SMS already sent.');
+    return; // STOP!
+  }
+
+  // 2. Send SMS
+  final success = await SmsService.sendOrderApprovedSms(
+    name: order.customerName,
+    phone: order.customerPhone,
+    orderNumber: order.orderNumber,
+    totalAmount: order.totalAmount,
+  );
+
+  // 3. Flag in database
+  if (success) {
+    await _client.from('customer_orders').update({
+      'approved_sms_sent_at': DateTime.now().toIso8601String(),
+    }).eq('id', order.id);
+  }
+}
+```
