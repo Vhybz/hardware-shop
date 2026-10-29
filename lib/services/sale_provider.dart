@@ -102,27 +102,36 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
 
   Future<void> recordSale(SaleRecord sale) async {
     try {
+      // 1. Instant local persistence & state update (0ms)
       if (Hive.isBoxOpen(OfflineSyncService.salesBoxName)) {
         final box = Hive.box<Map>(OfflineSyncService.salesBoxName);
         await box.put(sale.id, sale.toJson());
       }
       state = [sale, ...state];
 
-      try {
-        final success = await LaravelApiService.submitSale(sale.toJson());
-        if (!success) {
-          await OfflineSyncService.addToQueue('SALE', sale.toJson());
-        }
-      } catch (e) {
-        debugPrint('submitSale API error, queueing offline: $e');
-        await OfflineSyncService.addToQueue('SALE', sale.toJson());
-      }
-
+      // 2. Decrement local stock instantly (0ms)
       for (final item in sale.items) {
         ref
             .read(productsFutureProvider.notifier)
             .updateStock(item.product.id, -item.quantity);
       }
+
+      // 3. Asynchronous background cloud sync (0ms blocking time)
+      unawaited(() async {
+        try {
+          final success = await LaravelApiService.submitSale(sale.toJson());
+          if (!success) {
+            await OfflineSyncService.addToQueue('SALE', sale.toJson());
+          }
+        } catch (e) {
+          debugPrint('submitSale API error, queueing offline: $e');
+          await OfflineSyncService.addToQueue('SALE', sale.toJson());
+        }
+      }());
+    } catch (e) {
+      debugPrint('recordSale error: $e');
+    }
+  }
     } catch (e) {
       debugPrint('recordSale error: $e');
     }
