@@ -70,6 +70,6 @@ final currentBranchProvider = Provider<Branch?>((ref) {
     data: (branches) =>
         branches.where((b) => b.code == user?.branchCode).firstOrNull,
     loading: () => null,
-    error: (_, _) => null,
+    error: (err, stack) => null,
   );
 });

@@ -220,7 +220,7 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
       return Image.network(
         photoUrl,
         fit: BoxFit.cover,
-        errorBuilder: (context, _, _) => Icon(Icons.person_rounded, size: 60, color: theme.colorScheme.primary),
+        errorBuilder: (context, error, stackTrace) => Icon(Icons.person_rounded, size: 60, color: theme.colorScheme.primary),
       );
     }
     return Icon(Icons.person_rounded, size: 60, color: theme.colorScheme.primary);
