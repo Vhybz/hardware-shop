@@ -59,18 +59,23 @@ class UserNotifier extends StateNotifier<List<UserAccount>> {
 
   Future<void> updateUserFields(
       String userId, Map<String, dynamic> fields) async {
+    UserAccount? updatedUser;
     state = state.map((u) {
       if (u.id == userId) {
-        final updated = UserAccount.fromJson({...u.toJson(), ...fields});
+        updatedUser = UserAccount.fromJson({...u.toJson(), ...fields});
         final sessionUser = ref.read(sessionUserProfileProvider);
         if (sessionUser?.id == userId) {
-          ref.read(sessionUserProfileProvider.notifier).state = updated;
+          ref.read(sessionUserProfileProvider.notifier).state = updatedUser;
         }
-        return updated;
+        return updatedUser!;
       }
       return u;
     }).toList();
     _saveToCache();
+
+    if (updatedUser != null) {
+      unawaited(OfflineSyncService.addToQueue('USER', updatedUser!.toJson()));
+    }
   }
 
   Future<void> approveUser(String id) async {
