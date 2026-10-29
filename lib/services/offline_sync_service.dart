@@ -170,10 +170,97 @@ class OfflineSyncService {
           await box.clear();
         }
       }
+      await syncAllLocalDataToCloud();
     } catch (_) {
     } finally {
       _isProcessing = false;
     }
+  }
+
+  static Future<int> syncAllLocalDataToCloud() async {
+    final List<Map<String, dynamic>> batchPayloads = [];
+
+    // 1. Local Users
+    try {
+      if (Hive.isBoxOpen(settingsBoxName)) {
+        final box = Hive.box(settingsBoxName);
+        final rawUsers = box.get('users_cache');
+        if (rawUsers != null && rawUsers is List) {
+          for (final u in rawUsers) {
+            final map = Map<String, dynamic>.from(u);
+            if (map['email'] != null) {
+              batchPayloads.add({'type': 'USER', 'payload': map});
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Local Sales
+    try {
+      if (Hive.isBoxOpen(salesBoxName)) {
+        final box = Hive.box<Map>(salesBoxName);
+        for (final s in box.values) {
+          final map = Map<String, dynamic>.from(s);
+          if (map['id'] != null) {
+            batchPayloads.add({'type': 'SALE', 'payload': map});
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Local Products
+    try {
+      if (Hive.isBoxOpen(productsBoxName)) {
+        final box = Hive.box<Map>(productsBoxName);
+        for (final p in box.values) {
+          final map = Map<String, dynamic>.from(p);
+          if (map['id'] != null) {
+            batchPayloads.add({'type': 'UPDATE_PRODUCT', 'payload': map});
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Local Customers
+    try {
+      if (Hive.isBoxOpen(customersBoxName)) {
+        final box = Hive.box<Map>(customersBoxName);
+        for (final c in box.values) {
+          final map = Map<String, dynamic>.from(c);
+          if (map['id'] != null) {
+            batchPayloads.add({'type': 'CUSTOMER', 'payload': map});
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 5. Local Expenses
+    try {
+      if (Hive.isBoxOpen(expensesBoxName)) {
+        final box = Hive.box<Map>(expensesBoxName);
+        for (final e in box.values) {
+          final map = Map<String, dynamic>.from(e);
+          if (map['id'] != null) {
+            batchPayloads.add({'type': 'EXPENSE', 'payload': map});
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (batchPayloads.isEmpty) return 0;
+
+    try {
+      final success = await LaravelApiService.processBatchSync(batchPayloads);
+      if (success) {
+        debugPrint('syncAllLocalDataToCloud: ${batchPayloads.length} records pushed to Neon Cloud!');
+        return batchPayloads.length;
+      }
+    } catch (e) {
+      debugPrint('syncAllLocalDataToCloud error: $e');
+    }
+    return 0;
+  }
   }
 
   static void dispose() {
