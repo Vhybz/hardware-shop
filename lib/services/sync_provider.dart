@@ -123,7 +123,7 @@ class SyncNotifier extends StateNotifier<CloudSyncState> with WidgetsBindingObse
       // 1. Process offline queue first
       await OfflineSyncService.processQueue();
       
-      // 2. Refresh key data sets to ensure cache is hot and Supabase is source of truth
+      // 2. Refresh key data sets to ensure cache is hot and Laravel API is source of truth
       // Note: Realtime streams also handle this, but manual refresh ensures Req 3 is met.
       await Future.wait([
         _safeRefresh(productsFutureProvider.notifier, (n) => n.loadProducts()),

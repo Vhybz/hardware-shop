@@ -646,7 +646,7 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
     if (user != null) {
       final messenger = ScaffoldMessenger.of(context);
       ref.read(userProvider.notifier).updateProfile(
-        user.id,
+        userId: user.id,
         firstName: _firstNameController.text.trim(),
         surname: _surnameController.text.trim(),
         phone: _phoneController.text.trim(),

@@ -27,7 +27,7 @@ class GlobalLogout {
         entityType: 'USER',
       );
 
-      // 1. Sign out from Supabase
+      // 1. Sign out from auth session
       await ref.read(authServiceProvider).signOut();
 
       // 2. Clear all local session providers

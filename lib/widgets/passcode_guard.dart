@@ -114,7 +114,7 @@ class _PasscodeGuardState extends ConsumerState<PasscodeGuard> {
                 setDialogState(() => _isVerifyingPassword = true);
                 try {
                   final response = await ref.read(authServiceProvider).signIn(user.email, controller.text);
-                  if (response.user != null) {
+                  if (response['user'] != null) {
                     if (context.mounted) Navigator.pop(context, true);
                   }
                 } catch (e) {

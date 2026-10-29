@@ -26,9 +26,6 @@ class AuditService {
       timestamp: DateTime.now(),
     );
 
-    await OfflineSyncService.addToQueue(
-      actionType: 'AUDIT',
-      data: log.toJson(),
-    );
+    await OfflineSyncService.addToQueue('AUDIT', log.toJson());
   }
 }

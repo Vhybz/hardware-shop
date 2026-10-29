@@ -7,7 +7,6 @@ import '../../services/product_service.dart';
 import '../../models/product.dart';
 import '../../models/warehouse_models.dart';
 import '../../services/warehouse_service.dart';
-import '../../services/supabase_warehouse_service.dart';
 import '../../services/report_service.dart';
 
 class WarehouseGoodsScreen extends ConsumerStatefulWidget {
@@ -265,12 +264,8 @@ class _WarehouseGoodsScreenState extends ConsumerState<WarehouseGoodsScreen> {
                       createdAt: batch.createdAt,
                     );
 
-                    final service = ref.read(supabaseWarehouseServiceProvider);
-                    await service.updateWarehouseBatch(updatedBatch);
-
                     if (product != null) {
-                      await service.updateProductWarehouseStock(product.id, totalPcs);
-                      await ref.read(productsFutureProvider.notifier).loadProducts();
+                      await ref.read(productsFutureProvider.notifier).updateStock(product.id, totalPcs);
                     }
 
                     if (context.mounted) {

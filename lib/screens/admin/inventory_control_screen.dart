@@ -6,7 +6,7 @@ import '../../widgets/camera_barcode_scanner_dialog.dart';
 import '../../core/constants.dart';
 import '../../widgets/main_app_bar.dart';
 import '../../services/product_service.dart';
-import '../../services/supabase_product_service.dart';
+import '../../services/warehouse_service.dart';
 import '../../models/product.dart';
 import '../../core/uuid_utils.dart';
 import '../../core/utils.dart';

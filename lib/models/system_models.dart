@@ -75,6 +75,28 @@ class SystemNotification {
     required this.createdAt,
   });
 
+  SystemNotification copyWith({
+    String? id,
+    String? branchCode,
+    String? userId,
+    String? title,
+    String? message,
+    String? type,
+    bool? isRead,
+    DateTime? createdAt,
+  }) {
+    return SystemNotification(
+      id: id ?? this.id,
+      branchCode: branchCode ?? this.branchCode,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      type: type ?? this.type,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory SystemNotification.fromJson(Map<String, dynamic> json) {
     return SystemNotification(
       id: json['id'],

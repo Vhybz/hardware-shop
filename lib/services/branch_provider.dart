@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/branch_model.dart';
-import 'supabase_branch_service.dart';
+import 'branch_service.dart';
 import 'user_provider.dart';
 
-final branchServiceProvider = Provider<SupabaseBranchService>((ref) {
-  return SupabaseBranchService();
+final branchServiceProvider = Provider<BranchService>((ref) {
+  return BranchService();
 });
 
 final branchesFutureProvider = FutureProvider<List<Branch>>((ref) async {
@@ -18,7 +18,7 @@ final branchesFutureProvider = FutureProvider<List<Branch>>((ref) async {
 });
 
 class BranchNotifier extends StateNotifier<AsyncValue<List<Branch>>> {
-  final SupabaseBranchService _service;
+  final BranchService _service;
 
   BranchNotifier(this._service) : super(const AsyncValue.loading()) {
     loadBranches();
@@ -52,21 +52,23 @@ class BranchNotifier extends StateNotifier<AsyncValue<List<Branch>>> {
       await _service.updateBranchAdmin(code, adminId);
       await loadBranches();
     } catch (e) {
-      // Ignore errors for now as this is a secondary update
+      // Ignore errors for now
     }
   }
 }
 
-final branchesProvider = StateNotifierProvider<BranchNotifier, AsyncValue<List<Branch>>>((ref) {
+final branchesProvider =
+    StateNotifierProvider<BranchNotifier, AsyncValue<List<Branch>>>((ref) {
   return BranchNotifier(ref.watch(branchServiceProvider));
 });
 
 final currentBranchProvider = Provider<Branch?>((ref) {
   final user = ref.watch(currentUserProvider);
   final branchesAsync = ref.watch(branchesProvider);
-  
+
   return branchesAsync.when(
-    data: (branches) => branches.where((b) => b.code == user?.branchCode).firstOrNull,
+    data: (branches) =>
+        branches.where((b) => b.code == user?.branchCode).firstOrNull,
     loading: () => null,
     error: (_, _) => null,
   );

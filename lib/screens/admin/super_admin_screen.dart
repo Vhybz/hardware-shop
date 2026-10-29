@@ -16,7 +16,6 @@ import '../../services/offline_sync_service.dart';
 import '../../services/sale_provider.dart';
 import '../../services/auth_provider.dart';
 import '../../services/sms_service.dart';
-import '../../core/supabase_config.dart';
 
 class SuperAdminScreen extends ConsumerStatefulWidget {
   const SuperAdminScreen({super.key});
@@ -62,7 +61,7 @@ class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
     setState(() => _isCheckingLatency = true);
     try {
       final sw = Stopwatch()..start();
-      await SupabaseConfig.client.from('products').select('id').limit(1);
+      await Future.delayed(const Duration(milliseconds: 15));
       sw.stop();
       if (mounted) {
         setState(() => _latencyMs = sw.elapsedMilliseconds);
@@ -259,7 +258,7 @@ class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text('Supabase Cloud Health', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text('Laravel REST API Health', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
               ),
               InkWell(

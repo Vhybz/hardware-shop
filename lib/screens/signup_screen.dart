@@ -10,6 +10,7 @@ import '../services/user_provider.dart';
 import '../services/branch_provider.dart';
 import '../services/auth_provider.dart';
 import '../services/sms_service.dart';
+import '../services/offline_auth_vault.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -598,10 +599,39 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
           await ref.read(branchesProvider.notifier).addBranch(newBranch);
         }
 
-        final authResponse = await ref.read(authServiceProvider).signUp(email, password);
-        final authUser = authResponse.user;
+        final adminExists = await userNotifier.checkIfAnyAdminExists();
+        final isSuperAdmin = _selectedRole == UserRole.superAdmin;
+        final isFirstAdmin = !adminExists && (_selectedRole == UserRole.admin || isSuperAdmin);
+
+        final extraData = {
+          'first_name': _firstNameController.text.trim(),
+          'surname': _surnameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'gender': _selectedGender,
+          'dob': _selectedDob?.toIso8601String(),
+          'role': (existingProfile?.role ?? _selectedRole ?? UserRole.cashier).name,
+          'branch_code': existingProfile?.branchCode ?? branchCode,
+          'status': (isFirstAdmin || isSuperAdmin || existingProfile != null) ? 'approved' : 'pending',
+        };
+
+        final authResponse = await ref.read(authServiceProvider).signUp(email, password, extraData);
         
-        if (authUser != null) {
+        String? userId;
+        final authUser = authResponse['user'];
+        if (authUser is Map) {
+          userId = authUser['id']?.toString();
+        } else if (authUser != null) {
+          try {
+            userId = (authUser as dynamic).id?.toString();
+          } catch (_) {}
+        }
+        
+        userId ??= authResponse['id']?.toString() ?? authResponse['user_id']?.toString();
+        if (userId == null && authResponse['status'] == 'success') {
+          userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
+        }
+
+        if (userId != null) {
           final adminExists = await userNotifier.checkIfAnyAdminExists();
           final isSuperAdmin = _selectedRole == UserRole.superAdmin;
           final isFirstAdmin = !adminExists && (_selectedRole == UserRole.admin || isSuperAdmin);
@@ -609,7 +639,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
           debugPrint('Signup Trace: AdminExists=$adminExists, SelectedRole=$_selectedRole, IsFirstAdmin=$isFirstAdmin');
           
           final newUser = UserAccount(
-            id: authUser.id,
+            id: userId,
             firstName: _firstNameController.text.trim(),
             surname: _surnameController.text.trim(),
             email: email,
@@ -639,6 +669,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
 
           try {
             await userNotifier.addAccount(newUser);
+            await OfflineAuthVault.saveUserCredentialsOnline(newUser, email, password);
             if ((_selectedRole == UserRole.admin || _selectedRole == UserRole.superAdmin) && (_isCreatingBranch || noBranchesExist)) {
               if (branchCode != null) {
                 await ref.read(branchesProvider.notifier).setBranchAdmin(branchCode, newUser.id);

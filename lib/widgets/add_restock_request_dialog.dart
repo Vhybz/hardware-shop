@@ -278,7 +278,7 @@ class _AddRestockRequestDialogState extends ConsumerState<AddRestockRequestDialo
                   createdAt: DateTime.now(),
                 );
 
-                await ref.read(restockRequestsProvider.notifier).addRequest(req);
+                await ref.read(restockRequestsProvider(_selectedProduct?.branchCode ?? 'MAIN').notifier).addRequest(req);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

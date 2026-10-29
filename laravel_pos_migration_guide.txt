@@ -1,0 +1,531 @@
+================================================================================
+ADOM MMOROSO ENT. - FLUTTER POS TO LARAVEL 11 PHP & POSTGRESQL MIGRATION GUIDE
+Complete Step-by-Step Architecture, Database Migrations, API Controllers & Hosting
+================================================================================
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. System Architecture Overview
+2. Step 1: Laravel 11 Project & PostgreSQL Setup
+3. Step 2: PostgreSQL Database Migrations
+4. Step 3: Laravel Eloquent Models & Sanctum Auth
+5. Step 4: Atomic Sale Transaction & API Controllers
+6. Step 5: REST API Route Definitions (`routes/api.php`)
+7. Step 6: Flutter Laravel API Service Layer
+8. Step 7: Cloud Production Hosting Guide (Render / VPS)
+
+
+================================================================================
+1. SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
++------------------------------------------------------------------------------+
+|                        Flutter POS Client App                                |
+|        (Web Browser, Android, iOS, Windows, macOS, Linux)                    |
++------------------------------------------------------------------------------+
+                                       |
+                                       | HTTPS JSON REST API
+                                       | Bearer Token (Laravel Sanctum)
+                                       v
++------------------------------------------------------------------------------+
+|                     Laravel 11 PHP REST API Server                           |
+|        (Auth Middleware, DB Transactions, Input Validation)                  |
++------------------------------------------------------------------------------+
+                                       |
+                                       | SQL Driver (pgSQL)
+                                       v
++------------------------------------------------------------------------------+
+|                     PostgreSQL 16 Enterprise Database                        |
+|        (Branches, Users, Products, Sales, Expenses, Audit Logs)             |
++------------------------------------------------------------------------------+
+
+
+================================================================================
+2. STEP 1: LARAVEL 11 PROJECT & POSTGRESQL SETUP
+================================================================================
+
+1. Create a new Laravel 11 API project:
+   composer create-project laravel/laravel:^11.0 laravel-pos-api
+   cd laravel-pos-api
+
+2. Install Laravel Sanctum for API token authentication:
+   composer require laravel/sanctum
+   php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+
+3. Update your `.env` file for PostgreSQL connection:
+
+   APP_NAME="Adom Mmoroso ENT. API"
+   APP_ENV=production
+   APP_KEY=base64:...
+   APP_DEBUG=false
+   APP_URL=https://api.adomhardware.com
+
+   DB_CONNECTION=pgsql
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_DATABASE=adom_pos_db
+   DB_USERNAME=postgres
+   DB_PASSWORD=your_secure_password
+
+   SESSION_DRIVER=database
+   SANCTUM_STATEFUL_DOMAINS=adomhardware.com
+
+
+================================================================================
+3. STEP 2: POSTGRESQL DATABASE MIGRATIONS (LARAVEL CODE)
+================================================================================
+
+Execute the following artisan commands to generate migration files:
+  php artisan make:migration create_branches_table
+  php artisan make:migration create_users_table
+  php artisan make:migration create_customers_table
+  php artisan make:migration create_products_table
+  php artisan make:migration create_sales_table
+  php artisan make:migration create_expenses_table
+  php artisan make:migration create_stock_transfers_table
+  php artisan make:migration create_till_movements_table
+  php artisan make:migration create_audit_logs_table
+
+
+-- MIGRATION 1: Branches Table (`create_branches_table.php`)
+--------------------------------------------------------------------------------
+public function up(): void {
+    Schema::create('branches', function (Blueprint $table) {
+        $table->uuid('id')->primary();
+        $table->string('code')->unique();
+        $table->string('name');
+        $table->string('location')->default('Zongo One Way, Sunyani, Ghana');
+        $table->decimal('latitude', 10, 7)->default(7.3349);
+        $table->decimal('longitude', 10, 7)->default(-2.3123);
+        $table->decimal('radius_meters', 10, 2)->default(500.0);
+        $table->timestamps();
+    });
+}
+
+
+-- MIGRATION 2: Users Table (`create_users_table.php`)
+--------------------------------------------------------------------------------
+public function up(): void {
+    Schema::create('users', function (Blueprint $table) {
+        $table->uuid('id')->primary();
+        $table->string('email')->unique();
+        $table->string('first_name');
+        $table->string('surname');
+        $table->string('phone')->nullable();
+        $table->string('gender')->nullable();
+        $table->date('dob')->nullable();
+        $table->text('photo_url')->nullable();
+        $table->string('role')->default('cashier');
+        $table->string('branch_code')->nullable();
+        $table->string('password');
+        $table->string('passcode')->nullable();
+        $table->boolean('is_passcode_enabled')->default(false);
+        $table->string('status')->default('approved');
+        $table->jsonb('enabled_permissions')->default('[]');
+        $table->decimal('base_salary', 12, 2)->default(0);
+        $table->timestamp('last_seen')->nullable();
+        $table->boolean('is_deleted')->default(false);
+        $table->rememberToken();
+        $table->timestamps();
+
+        $table->index('email');
+        $table->index('phone');
+        $table->index('branch_code');
+    });
+}
+
+
+-- MIGRATION 3: Products Table (`create_products_table.php`)
+--------------------------------------------------------------------------------
+public function up(): void {
+    Schema::create('products', function (Blueprint $table) {
+        $table->uuid('id')->primary();
+        $table->string('branch_code');
+        $table->string('name');
+        $table->decimal('retail_price', 12, 2)->default(0);
+        $table->decimal('wholesale_price', 12, 2)->default(0);
+        $table->decimal('cost_price', 12, 2)->default(0);
+        $table->string('category');
+        $table->decimal('stock_quantity', 12, 2)->default(0);
+        $table->decimal('warehouse_quantity', 12, 2)->default(0);
+        $table->string('sku')->nullable();
+        $table->string('unit')->default('pcs');
+        $table->text('image_url')->nullable();
+        $table->boolean('is_deleted')->default(false);
+        $table->timestamps();
+
+        $table->index(['branch_code', 'category']);
+        $table->index('sku');
+        $table->index('is_deleted');
+    });
+}
+
+
+-- MIGRATION 4: Sales Table (`create_sales_table.php`)
+--------------------------------------------------------------------------------
+public function up(): void {
+    Schema::create('sales', function (Blueprint $table) {
+        $table->string('id')->primary();
+        $table->string('branch_code');
+        $table->uuid('cashier_id')->nullable();
+        $table->string('cashier_name');
+        $table->uuid('customer_id')->nullable();
+        $table->string('customer_name')->nullable();
+        $table->string('customer_phone')->nullable();
+        $table->decimal('total_amount', 12, 2)->default(0);
+        $table->decimal('amount_paid', 12, 2)->default(0);
+        $table->decimal('balance', 12, 2)->default(0);
+        $table->decimal('discount_amount', 12, 2)->default(0);
+        $table->string('status')->default('completed');
+        $table->jsonb('payments')->default('[]');
+        $table->jsonb('items')->default('[]');
+        $table->timestamp('timestamp')->useCurrent();
+        $table->boolean('is_active')->default(true);
+        $table->timestamps();
+
+        $table->index(['branch_code', 'timestamp']);
+        $table->index('cashier_id');
+        $table->index('status');
+    });
+}
+
+
+================================================================================
+4. STEP 3: LARAVEL ELOQUENT MODELS & SANCTUM AUTH
+================================================================================
+
+-- MODEL: `app/Models/User.php`
+--------------------------------------------------------------------------------
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable {
+    use HasApiTokens, Notifiable;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'id', 'first_name', 'surname', 'email', 'phone', 'role',
+        'branch_code', 'password', 'status', 'enabled_permissions'
+    ];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    protected $casts = [
+        'enabled_permissions' => 'array',
+        'is_deleted' => 'boolean',
+    ];
+}
+
+
+-- CONTROLLER: `app/Http/Controllers/Api/AuthController.php`
+--------------------------------------------------------------------------------
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
+class AuthController extends Controller {
+
+    public function login(Request $request) {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        if (!Auth::attempt($credentials)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid email address or password'
+            ], 401);
+        }
+
+        $user = Auth::user();
+
+        if ($user->status !== 'approved') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Your staff account is pending approval.'
+            ], 403);
+        }
+
+        // Generate Sanctum Bearer Token
+        $token = $user->createToken('pos_device_token')->plainTextToken;
+
+        return response()->json([
+            'status' => 'success',
+            'token' => $token,
+            'user' => $user,
+        ]);
+    }
+
+    public function me(Request $request) {
+        return response()->json([
+            'status' => 'success',
+            'user' => $request->user(),
+        ]);
+    }
+}
+
+
+================================================================================
+5. STEP 4: ATOMIC SALE TRANSACTION & API CONTROLLERS
+================================================================================
+
+-- CONTROLLER: `app/Http/Controllers/Api/SaleController.php`
+--------------------------------------------------------------------------------
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Sale;
+use App\Models\Product;
+
+class SaleController extends Controller {
+
+    public function store(Request $request) {
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'branch_code' => 'required|string',
+            'cashier_id' => 'required|string',
+            'cashier_name' => 'required|string',
+            'total_amount' => 'required|numeric',
+            'amount_paid' => 'required|numeric',
+            'balance' => 'required|numeric',
+            'status' => 'required|string',
+            'items' => 'required|array',
+            'payments' => 'required|array',
+        ]);
+
+        // Wrap in PostgreSQL DB Transaction for 100% Concurrency Safety
+        return DB::transaction(function () use ($validated, $request) {
+
+            // 1. Create Invoice Record
+            $sale = Sale::create([
+                'id' => $validated['id'],
+                'branch_code' => $validated['branch_code'],
+                'cashier_id' => $validated['cashier_id'],
+                'cashier_name' => $validated['cashier_name'],
+                'customer_id' => $request->input('customer_id'),
+                'customer_name' => $request->input('customer_name'),
+                'customer_phone' => $request->input('customer_phone'),
+                'total_amount' => $validated['total_amount'],
+                'amount_paid' => $validated['amount_paid'],
+                'balance' => $validated['balance'],
+                'discount_amount' => $request->input('discount_amount', 0),
+                'status' => $validated['status'],
+                'items' => $validated['items'],
+                'payments' => $validated['payments'],
+                'timestamp' => now(),
+            ]);
+
+            // 2. Atomic Stock Decrement per Product
+            foreach ($validated['items'] as $item) {
+                Product::where('id', $item['product_id'])
+                    ->decrement('stock_quantity', $item['quantity']);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sale recorded successfully',
+                'sale' => $sale,
+            ], 201);
+        });
+    }
+
+    public function index(Request $request) {
+        $branchCode = $request->query('branch_code');
+        $sales = Sale::where('branch_code', $branchCode)
+            ->where('is_active', true)
+            ->orderBy('timestamp', 'desc')
+            ->paginate(50);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $sales,
+        ]);
+    }
+}
+
+
+================================================================================
+6. STEP 5: REST API ROUTE DEFINITIONS (`routes/api.php`)
+================================================================================
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\CustomerController;
+
+Route::prefix('v1')->group(function () {
+
+    // Public Auth Endpoints
+    Route::post('/auth/login', [AuthController::class, 'login']);
+
+    // Protected API Endpoints (Sanctum Token Required)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/auth/me', [AuthController::class, 'me']);
+
+        // Products
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::post('/products', [ProductController::class, 'store']);
+        Route::put('/products/{id}', [ProductController::class, 'update']);
+
+        // Sales & Checkout
+        Route::get('/sales', [SaleController::class, 'index']);
+        Route::post('/sales', [SaleController::class, 'store']);
+
+        // Offline Batch Queue Sync
+        Route::post('/sync/batch', [SyncController::class, 'processBatch']);
+    });
+});
+
+
+================================================================================
+7. STEP 6: FLUTTER LARAVEL API SERVICE LAYER
+================================================================================
+
+-- Create `lib/services/laravel_api_service.dart` in your Flutter POS project:
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:hive_flutter/hive_flutter.dart';
+
+class LaravelApiService {
+  static const String baseUrl = 'https://api.adomhardware.com/api/v1';
+
+  static String? get _token {
+    final box = Hive.box('app_settings');
+    return box.get('laravel_token');
+  }
+
+  static Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (_token != null) 'Authorization': 'Bearer $_token',
+  };
+
+  static Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: _headers,
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && data['status'] == 'success') {
+      final token = data['token'];
+      final box = Hive.box('app_settings');
+      await box.put('laravel_token', token);
+      return data;
+    }
+    throw Exception(data['message'] ?? 'Login failed');
+  }
+
+  static Future<List<dynamic>> fetchProducts(String branchCode) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/products?branch_code=$branchCode'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['data'];
+    }
+    throw Exception('Failed to load products');
+  }
+
+  static Future<bool> submitSale(Map<String, dynamic> saleJson) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/sales'),
+      headers: _headers,
+      body: jsonEncode(saleJson),
+    );
+
+    return response.statusCode == 201;
+  }
+}
+
+
+================================================================================
+8. STEP 7: CLOUD PRODUCTION HOSTING GUIDE
+================================================================================
+
+OPTION A: MANAGED CLOUD PLATFORM (Render.com / Railway.app)
+--------------------------------------------------------------------------------
+1. Create a Managed PostgreSQL Database on Render/Railway.
+2. Push your Laravel project repository to GitHub.
+3. On Render, click "New Web Service" -> Connect GitHub repo.
+4. Set Build Command: `composer install --no-dev && php artisan config:cache`
+5. Set Start Command: `php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080`
+6. Add Environment Variables in Dashboard: `DB_CONNECTION`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`.
+
+
+OPTION B: PRODUCTION UBUNTU VPS (DigitalOcean / Linode / Hetzner)
+--------------------------------------------------------------------------------
+1. Connect to VPS via SSH:
+   ssh root@your_vps_ip
+
+2. Install Nginx, PHP 8.3-FPM, PostgreSQL 16:
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install nginx php8.3-fpm php8.3-pgsql php8.3-mbstring php8.3-xml php8.3-bcmath postgresql postgresql-contrib git unzip certbot python3-certbot-nginx -y
+
+3. Configure PostgreSQL Database:
+   sudo -u postgres psql
+   CREATE DATABASE adom_pos_db;
+   CREATE USER adom_user WITH PASSWORD 'YourSecretPass123!';
+   GRANT ALL PRIVILEGES ON DATABASE adom_pos_db TO adom_user;
+   \q
+
+4. Clone Laravel API Project to `/var/www/adom-api`:
+   cd /var/www
+   git clone https://github.com/your-repo/laravel-pos-api.git adom-api
+   cd adom-api
+   composer install --no-dev --optimize-autoloader
+   cp .env.example .env
+   php artisan key:generate
+   php artisan migrate --force
+   sudo chown -R www-data:www-data /var/www/adom-api/storage /var/www/adom-api/bootstrap/cache
+
+5. Configure Nginx Server Block (`/etc/nginx/sites-available/adom-api`):
+
+   server {
+       listen 80;
+       server_name api.adomhardware.com;
+       root /var/www/adom-api/public;
+
+       index index.php;
+
+       location / {
+           try_files $uri $uri/ /index.php?$query_string;
+       }
+
+       location ~ \.php$ {
+           include snippets/fastcgi-php.conf;
+           fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+       }
+   }
+
+   sudo ln -s /etc/nginx/sites-available/adom-api /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl reload nginx
+
+6. Enable Free SSL HTTPS Certificate:
+   sudo certbot --nginx -d api.adomhardware.com
+
+
+================================================================================
+SUMMARY
+================================================================================
+You now have the complete blueprint to clone your POS into Laravel 11 + PostgreSQL.
+Save this `laravel_pos_migration_guide.txt` file in your root folder for reference anytime!
+================================================================================

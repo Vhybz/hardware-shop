@@ -113,7 +113,7 @@ class _AccountSwitchDialogState extends ConsumerState<AccountSwitchDialog> {
                 try {
                   // Verify password by attempting to sign in
                   final response = await ref.read(authServiceProvider).signIn(widget.targetUser.email, controller.text);
-                  if (response.user != null) {
+                  if (response['user'] != null) {
                     if (context.mounted) Navigator.pop(context, true);
                   }
                 } catch (e) {

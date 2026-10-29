@@ -411,7 +411,7 @@ class _MainAppBarState extends ConsumerState<MainAppBar> with SingleTickerProvid
             final String statusDescription = !hasInternet
                 ? 'No Internet: System operating offline. All actions will automatically push once reconnected.'
                 : (isSyncing
-                    ? 'Syncing In Progress: Data is uploading/downloading with Supabase Cloud.'
+                    ? 'Syncing In Progress: Data is uploading/downloading with Laravel REST API.'
                     : 'Complete Sync: Internet active and cloud data fully synchronized.');
 
             return AlertDialog(
@@ -470,7 +470,7 @@ class _MainAppBarState extends ConsumerState<MainAppBar> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _buildSyncDetailRow('Backend Server', 'Supabase Cloud (PostgreSQL)'),
+                  _buildSyncDetailRow('Backend Server', 'Laravel REST API (PostgreSQL)'),
                   const SizedBox(height: 8),
                   _buildSyncDetailRow(
                     'Connection Status',

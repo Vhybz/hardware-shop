@@ -426,7 +426,7 @@ class _ReturnsScreenState extends ConsumerState<ReturnsScreen> with SingleTicker
                             border: OutlineInputBorder(),
                           ),
                           items: intakes.map((i) {
-                            return DropdownMenuItem(
+                            return DropdownMenuItem<WarehouseIntakeRecord>(
                               value: i,
                               child: Text('#${i.intakeNumber} - ${i.supplierName} (${DateFormat('yyyy-MM-dd').format(i.date)})', overflow: TextOverflow.ellipsis),
                             );

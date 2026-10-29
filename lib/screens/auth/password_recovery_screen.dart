@@ -3,9 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants.dart';
-import '../../core/supabase_config.dart';
 import '../../models/user_model.dart';
 import '../../services/sms_service.dart';
 import '../../services/offline_auth_vault.dart';
@@ -150,40 +148,10 @@ class _PasswordRecoveryScreenState extends ConsumerState<PasswordRecoveryScreen>
     setState(() => _isLoading = true);
 
     try {
-      final client = SupabaseConfig.client;
+      final vaultUser = OfflineAuthVault.getAccount(rawInput);
       Map<String, dynamic>? userRecord;
-
-      // 1. Try finding by email
-      if (rawInput.contains('@')) {
-        final response = await client
-            .from('users')
-            .select('id, email, phone, first_name, surname, is_deleted')
-            .eq('email', rawInput.toLowerCase())
-            .eq('is_deleted', false)
-            .maybeSingle();
-
-        if (response != null) userRecord = Map<String, dynamic>.from(response);
-      }
-
-      // 2. Try finding by phone if email didn't match
-      if (userRecord == null) {
-        String cleanPhone = rawInput.replaceAll(RegExp(r'\D'), '');
-        String altPhone = cleanPhone;
-
-        if (cleanPhone.startsWith('0') && cleanPhone.length == 10) {
-          altPhone = '233${cleanPhone.substring(1)}';
-        } else if (cleanPhone.startsWith('233') && cleanPhone.length == 12) {
-          altPhone = '0${cleanPhone.substring(3)}';
-        }
-
-        final response = await client
-            .from('users')
-            .select('id, email, phone, first_name, surname, is_deleted')
-            .or('phone.eq.$cleanPhone,phone.eq.$altPhone')
-            .eq('is_deleted', false)
-            .maybeSingle();
-
-        if (response != null) userRecord = Map<String, dynamic>.from(response);
+      if (vaultUser != null) {
+        userRecord = vaultUser;
       }
 
       if (userRecord == null) {
@@ -304,53 +272,8 @@ class _PasswordRecoveryScreenState extends ConsumerState<PasswordRecoveryScreen>
     setState(() => _isLoading = true);
 
     try {
-      final client = SupabaseConfig.client;
-
-      // 1. Attempt Supabase Auth password update via Admin Client (service role) or session fallback
-      bool authUpdated = false;
-      String? authErrorMessage;
-
-      try {
-        await SupabaseConfig.adminClient.auth.admin.updateUserById(
-          _matchedUserId!,
-          attributes: AdminUserAttributes(password: newPass),
-        );
-        authUpdated = true;
-      } catch (adminErr) {
-        debugPrint('Auth Admin update error: $adminErr');
-        authErrorMessage = adminErr.toString();
-        try {
-          final currentUser = client.auth.currentUser;
-          if (currentUser != null) {
-            await client.auth.updateUser(UserAttributes(password: newPass));
-            authUpdated = true;
-          }
-        } catch (authErr) {
-          debugPrint('Auth session update error: $authErr');
-        }
-      }
-
-      if (!authUpdated) {
-        _showError(
-          'Failed to update password in Supabase Auth. '
-          'Please ensure SUPABASE_SERVICE_ROLE_KEY is configured in your .env file or contact your system administrator. '
-          'Error: ${authErrorMessage ?? "Unauthenticated password reset requires admin privileges."}'
-        );
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      // 2. Update user profile in Supabase database
-      try {
-        await client
-            .from('users')
-            .update({
-              'is_passcode_enabled': false,
-              'last_seen': DateTime.now().toIso8601String(),
-            })
-            .eq('id', _matchedUserId!);
-      } catch (e) {
-        debugPrint('Database profile update error: $e');
+      if (_matchedUserEmail != null) {
+        await OfflineAuthVault.updatePassword(_matchedUserEmail!, newPass);
       }
 
       // 3. Save new password hash in local Offline Auth Vault only after successful online update

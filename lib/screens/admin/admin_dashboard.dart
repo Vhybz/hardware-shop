@@ -562,7 +562,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     status: SaleStatus.rectified,
                   );
                   
-                  // Update State (Future Supabase Update)
+                  // Update State (Future API Update)
                   ref.read(saleHistoryProvider.notifier).updateSale(rectifiedSale);
                   
                   // Notify Cashier

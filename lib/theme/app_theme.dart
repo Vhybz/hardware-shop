@@ -3,13 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/constants.dart';
 
 class AppTheme {
+  static ThemeData get lightTheme => getLightTheme(const Color(0xFF0F172A));
+  static ThemeData get darkTheme => getDarkTheme(const Color(0xFF0F172A));
+
   static ThemeData getLightTheme(Color primaryColor) {
-    final bool isTooLight = primaryColor.computeLuminance() > 0.45;
-    final Color effectivePrimary = isTooLight ? const Color(0xFF0F172A) : primaryColor;
-    final bool isLightPrimary = effectivePrimary.computeLuminance() > 0.35;
     final bool isMonochromeWhite = primaryColor.toARGB32() == 0xFFFFFFFF;
+    final Color effectivePrimary = primaryColor;
+    final bool isLightPrimary = effectivePrimary.computeLuminance() > 0.4 || isMonochromeWhite;
+    final Color onPrimaryColor = isLightPrimary ? const Color(0xFF0F172A) : Colors.white;
     final baseTextTheme = ThemeData.light().textTheme;
-    final Color onPrimaryColor = Colors.white;
 
     return ThemeData(
       useMaterial3: true,
@@ -201,21 +203,13 @@ class AppTheme {
     const darkSurface = Color(0xFF1E1E20); // Dark Card Surface
     const darkBorder = Color(0xFF2E2E32); // Dark Border
 
-    final Color effectivePrimary = HSLColor.fromColor(primaryColor)
-        .withLightness((HSLColor.fromColor(primaryColor).lightness).clamp(0.25, 0.75))
-        .toColor();
+    final bool isMonochromeWhite = primaryColor.toARGB32() == 0xFFFFFFFF;
+    final Color effectivePrimary = isMonochromeWhite ? Colors.white : primaryColor;
 
-    final bool isLightPrimary = effectivePrimary.computeLuminance() > 0.35;
+    final bool isLightPrimary = effectivePrimary.computeLuminance() > 0.35 || isMonochromeWhite;
     final Color onPrimaryColor = isLightPrimary ? AppColors.textDark : Colors.white;
 
-    final baseTextTheme = const TextTheme(
-      headlineLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      headlineMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      bodyLarge: TextStyle(color: Color(0xFFECEFF1)),
-      bodyMedium: TextStyle(color: Color(0xFFB0BEC5)),
-      bodySmall: TextStyle(color: Color(0xFF90A4AE)),
-    );
+    final baseTextTheme = ThemeData.dark().textTheme;
 
     return ThemeData(
       useMaterial3: true,

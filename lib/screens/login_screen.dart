@@ -52,17 +52,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final response = await ref.read(authServiceProvider).signIn(email, password);
       
-      if (response.user != null) {
-        final notifier = ref.read(userProvider.notifier);
+      if (response['user'] != null) {
+        final userMap = response['user'] as Map<String, dynamic>;
+        final userId = userMap['id']?.toString() ?? '';
         
-        // 1. Try local state first
+        // 1. Try local state first or construct from response
         UserAccount? userAccount;
         try {
-          userAccount = ref.read(userProvider).firstWhere((u) => u.id == response.user!.id);
-        } catch (_) {
-          // 2. Fallback: Fetch directly from Supabase if not in local state yet
-          userAccount = await notifier.fetchUserById(response.user!.id);
-        }
+          userAccount = ref.read(userProvider).firstWhere(
+            (u) => u.id == userId || u.email.toLowerCase() == (userMap['email']?.toString() ?? '').toLowerCase(),
+          );
+        } catch (_) {}
+
+        userAccount ??= UserAccount.fromJson(userMap);
+        await ref.read(userProvider.notifier).addAccount(userAccount);
 
         if (userAccount == null) {
           await GlobalLogout.perform(ref);
@@ -116,52 +119,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
         if (mounted) {
-          switch (userAccount.activePrimaryRole) {
-            case UserRole.admin:
-            case UserRole.superAdmin:
-              Navigator.pushReplacementNamed(context, '/admin');
-              break;
-            case UserRole.cashier:
-              Navigator.pushReplacementNamed(context, '/cashier');
-              break;
-          }
+          final targetRoute = (userAccount.activePrimaryRole == UserRole.cashier)
+              ? '/cashier/pos'
+              : '/admin/dashboard';
+          Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
         }
       }
     } catch (e) {
       final errorStr = e.toString();
-      final bool isExplicitAuthError = errorStr.contains('Invalid login credentials') ||
-          errorStr.contains('Email not confirmed') ||
-          errorStr.contains('User not found') ||
-          errorStr.contains('AuthException') ||
-          errorStr.contains('invalid_credentials');
 
-      // Attempt Offline Authentication ONLY when network fails
-      if (!isExplicitAuthError) {
-        final offlineUser = await OfflineAuthVault.attemptOfflineLogin(email, password);
-        if (offlineUser != null && mounted) {
-          ref.read(currentUserIdProvider.notifier).state = offlineUser.id;
-          ref.read(sessionUserProfileProvider.notifier).state = offlineUser;
-          ref.read(passcodeUnlockedProvider.notifier).state = true;
+      // Attempt Offline/Local Authentication fallback
+      UserAccount? offlineUser = await OfflineAuthVault.attemptOfflineLogin(email, password);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Signed in successfully in Offline Cashier POS Mode.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
-            ),
-          );
-
-          switch (offlineUser.activePrimaryRole) {
-            case UserRole.admin:
-            case UserRole.superAdmin:
-              Navigator.pushReplacementNamed(context, '/admin');
-              break;
-            case UserRole.cashier:
-              Navigator.pushReplacementNamed(context, '/cashier');
-              break;
+      if (offlineUser == null) {
+        try {
+          final users = ref.read(userProvider);
+          final cleanEmail = email.trim().toLowerCase();
+          final localMatch = users.where((u) => u.email.trim().toLowerCase() == cleanEmail).firstOrNull;
+          if (localMatch != null) {
+            offlineUser = localMatch;
+            await OfflineAuthVault.saveUserCredentialsOnline(localMatch, email, password);
           }
+        } catch (_) {}
+      }
+
+      if (offlineUser != null && mounted) {
+        if (offlineUser.status == AccountStatus.pending) {
+          _showMessage(AppStrings.approvalPendingTitle, AppStrings.approvalPendingMessage, isWarning: true);
           return;
         }
+
+        if (offlineUser.status == AccountStatus.suspended) {
+          _showMessage(AppStrings.accountSuspendedTitle, AppStrings.accountSuspendedMessage, isError: true);
+          return;
+        }
+
+        ref.read(currentUserIdProvider.notifier).state = offlineUser.id;
+        ref.read(sessionUserProfileProvider.notifier).state = offlineUser;
+        ref.read(passcodeUnlockedProvider.notifier).state = true;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signed in successfully in Offline/Local Mode.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+
+        final targetRoute = (offlineUser.activePrimaryRole == UserRole.cashier)
+            ? '/cashier/pos'
+            : '/admin/dashboard';
+        Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
+        return;
       }
 
       if (mounted) {

@@ -8,13 +8,44 @@ class OfflineAuthVault {
   static const String _authVaultBoxName = 'offline_auth_vault_box';
   static const String _salt = 'citypos_secure_salt_2026_ghana';
 
-  /// Hash password with salted SHA-256 for secure local storage
   static String _hashCredentials(String email, String password) {
     final bytes = utf8.encode('$email:$_salt:$password');
     return sha256.convert(bytes).toString();
   }
 
-  /// Saves user profile and encrypted password hash on successful online login
+  static Future<void> updatePassword(String identifier, String newPassword) async {
+    try {
+      final box = await Hive.openBox(_authVaultBoxName);
+      final clean = identifier.trim().toLowerCase();
+      final raw = box.get(clean) ?? box.get('last_signed_in_user');
+      if (raw != null) {
+        final data = Map<String, dynamic>.from(raw);
+        data['cred_hash'] = _hashCredentials(clean, newPassword);
+        await box.put(clean, data);
+        await box.put('last_signed_in_user', data);
+      }
+    } catch (e) {
+      debugPrint('updatePassword error: $e');
+    }
+  }
+
+  static Map<String, dynamic>? getAccount(String identifier) {
+    try {
+      if (Hive.isBoxOpen(_authVaultBoxName)) {
+        final box = Hive.box(_authVaultBoxName);
+        final raw = box.get(identifier.trim().toLowerCase()) ?? box.get('last_signed_in_user');
+        if (raw != null) {
+          final data = Map<String, dynamic>.from(raw);
+          final userJson = Map<String, dynamic>.from(data['user_json']);
+          return userJson;
+        }
+      }
+    } catch (e) {
+      debugPrint('getAccount error: $e');
+    }
+    return null;
+  }
+
   static Future<void> saveUserCredentialsOnline(
     UserAccount user,
     String email,
@@ -33,13 +64,11 @@ class OfflineAuthVault {
 
       await box.put(email.trim().toLowerCase(), vaultPayload);
       await box.put('last_signed_in_user', vaultPayload);
-      debugPrint('Offline Auth Vault: Credentials securely cached for ${email.trim()}');
     } catch (e) {
       debugPrint('Offline Auth Vault Save Error: $e');
     }
   }
 
-  /// Attempts offline authentication against local device vault
   static Future<UserAccount?> attemptOfflineLogin(
     String email,
     String password,
@@ -59,9 +88,7 @@ class OfflineAuthVault {
         final Map<String, dynamic> userJson = Map<String, dynamic>.from(data['user_json']);
         final user = UserAccount.fromJson(userJson);
 
-        // Verify account is approved and not suspended
         if (user.status == AccountStatus.approved) {
-          debugPrint('Offline Auth Vault: Successful offline authentication for ${user.email}');
           return user;
         }
       }
@@ -71,7 +98,6 @@ class OfflineAuthVault {
     return null;
   }
 
-  /// Attempts offline login using 4-digit staff passcode PIN
   static Future<UserAccount?> attemptOfflinePasscodeLogin(String passcode) async {
     try {
       final box = await Hive.openBox(_authVaultBoxName);
@@ -93,7 +119,6 @@ class OfflineAuthVault {
     return null;
   }
 
-  /// Retrieves the last signed-in user profile from local vault for offline startup
   static Future<UserAccount?> getLastSavedUserProfile() async {
     try {
       final box = await Hive.openBox(_authVaultBoxName);
@@ -103,7 +128,6 @@ class OfflineAuthVault {
         final userJson = Map<String, dynamic>.from(data['user_json']);
         final user = UserAccount.fromJson(userJson);
         if (user.status == AccountStatus.approved) {
-          debugPrint('Offline Auth Vault: Retrieved last saved profile for ${user.firstName} (${user.email})');
           return user;
         }
       }

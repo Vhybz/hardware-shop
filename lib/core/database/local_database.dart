@@ -18,7 +18,7 @@ class SyncQueue extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// 2. Define standard tables mirroring Supabase
+// 2. Define standard local tables
 class LocalProducts extends Table {
   TextColumn get id => text()();
   TextColumn get branchCode => text().nullable()();

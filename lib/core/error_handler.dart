@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ErrorHandler {
   /// Displays a friendly, non-intrusive SnackBar notification with an optional RETRY action.
@@ -25,7 +24,10 @@ class ErrorHandler {
             Expanded(
               child: Text(
                 displayMessage,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -48,18 +50,10 @@ class ErrorHandler {
 
   /// Parses technical exceptions into friendly human-readable messages.
   static String _parseErrorMessage(Object error) {
-    if (error is PostgrestException) {
-      if (error.code == 'PGRST200') {
-        return 'Connecting to database... Please check your internet connection.';
-      }
-      if (error.code == '42501') {
-        return 'Access denied. You do not have required permissions.';
-      }
-      return 'Database connection issue: ${error.message}';
-    }
-    
     final errStr = error.toString().toLowerCase();
-    if (errStr.contains('socketexception') || errStr.contains('network') || errStr.contains('connection failed')) {
+    if (errStr.contains('socketexception') ||
+        errStr.contains('network') ||
+        errStr.contains('connection failed')) {
       return 'Network connection weak. Please check your mobile data or Wi-Fi.';
     }
     if (errStr.contains('timeout')) {
