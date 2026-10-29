@@ -261,7 +261,6 @@ class OfflineSyncService {
     }
     return 0;
   }
-  }
 
   static void dispose() {
     _connectivitySubscription?.cancel();
