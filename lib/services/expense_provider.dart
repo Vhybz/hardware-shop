@@ -89,11 +89,6 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
       debugPrint('updateExpense error: $e');
     }
   }
-      state = state.copyWith(records: updated);
-    } catch (e) {
-      debugPrint('updateExpense error: $e');
-    }
-  }
 
   Future<void> recordCEOWithdrawal({
     double? amount,
