@@ -1,7 +1,9 @@
+import 'dart:async';
 import '../core/uuid_utils.dart';
 import '../models/system_models.dart';
 import 'offline_sync_service.dart';
 import 'user_provider.dart';
+import 'laravel_api_service.dart';
 
 class AuditService {
   static Future<void> log({
@@ -26,6 +28,7 @@ class AuditService {
       timestamp: DateTime.now(),
     );
 
+    unawaited(LaravelApiService.submitAuditLog(log.toJson()));
     await OfflineSyncService.addToQueue('AUDIT', log.toJson());
   }
 }

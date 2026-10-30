@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/expense_model.dart';
 import 'offline_sync_service.dart';
+import 'laravel_api_service.dart';
 
 class ExpenseState {
   final List<ExpenseRecord> records;
@@ -41,10 +42,12 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
 
   void _init() {
     _loadFromCache();
+    fetchRemoteExpenses('MAIN');
   }
 
-  Future<void> loadExpenses() async {
+  Future<void> loadExpenses([String branchCode = 'MAIN']) async {
     _loadFromCache();
+    await fetchRemoteExpenses(branchCode);
   }
 
   void _loadFromCache() {
@@ -61,6 +64,35 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
     }
   }
 
+  Future<void> fetchRemoteExpenses([String branchCode = 'MAIN']) async {
+    try {
+      final remoteList = await LaravelApiService.fetchExpenses(branchCode);
+      if (remoteList.isNotEmpty) {
+        final List<ExpenseRecord> remoteExpenses = remoteList
+            .map((e) => ExpenseRecord.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+
+        final Map<String, ExpenseRecord> map = {};
+        for (final r in state.records) {
+          map[r.id] = r;
+        }
+        for (final r in remoteExpenses) {
+          map[r.id] = r;
+        }
+
+        state = state.copyWith(records: map.values.toList());
+        if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
+          final box = Hive.box(OfflineSyncService.expensesBoxName);
+          for (final r in state.records) {
+            await box.put(r.id, r.toJson());
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('ExpenseNotifier fetchRemoteExpenses error: $e');
+    }
+  }
+
   Future<void> addExpense(ExpenseRecord expense) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
@@ -68,6 +100,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
         await box.put(expense.id, expense.toJson());
       }
       state = state.copyWith(records: [...state.records, expense]);
+      unawaited(LaravelApiService.submitExpense(expense.toJson()));
       await OfflineSyncService.addToQueue('EXPENSE', expense.toJson());
     } catch (e) {
       debugPrint('addExpense error: $e');
@@ -84,6 +117,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
           .map((r) => r.id == expense.id ? expense : r)
           .toList();
       state = state.copyWith(records: updated);
+      unawaited(LaravelApiService.submitExpense(expense.toJson()));
       await OfflineSyncService.addToQueue('EXPENSE', expense.toJson());
     } catch (e) {
       debugPrint('updateExpense error: $e');

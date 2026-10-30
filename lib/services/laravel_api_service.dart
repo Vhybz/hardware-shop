@@ -167,6 +167,138 @@ class LaravelApiService {
     }
   }
 
+  /// Submit customer record
+  static Future<bool> submitCustomer(Map<String, dynamic> customerJson) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/customers'),
+        headers: _headers,
+        body: jsonEncode(customerJson),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint('LaravelApiService submitCustomer Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch customers
+  static Future<List<dynamic>> fetchCustomers(String branchCode) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/customers?branch_code=$branchCode'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('LaravelApiService fetchCustomers Error: $e');
+    }
+    return [];
+  }
+
+  /// Submit expense record
+  static Future<bool> submitExpense(Map<String, dynamic> expenseJson) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/expenses'),
+        headers: _headers,
+        body: jsonEncode(expenseJson),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint('LaravelApiService submitExpense Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch expenses
+  static Future<List<dynamic>> fetchExpenses(String branchCode) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/expenses?branch_code=$branchCode'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('LaravelApiService fetchExpenses Error: $e');
+    }
+    return [];
+  }
+
+  /// Submit branch record
+  static Future<bool> submitBranch(Map<String, dynamic> branchJson) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/branches'),
+        headers: _headers,
+        body: jsonEncode(branchJson),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint('LaravelApiService submitBranch Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch branches
+  static Future<List<dynamic>> fetchBranches() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/branches'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('LaravelApiService fetchBranches Error: $e');
+    }
+    return [];
+  }
+
+  /// Submit audit log record
+  static Future<bool> submitAuditLog(Map<String, dynamic> auditJson) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/audit-logs'),
+        headers: _headers,
+        body: jsonEncode(auditJson),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint('LaravelApiService submitAuditLog Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch audit logs
+  static Future<List<dynamic>> fetchAuditLogs() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/audit-logs'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('LaravelApiService fetchAuditLogs Error: $e');
+    }
+    return [];
+  }
+
   /// Process offline batch queue sync
   static Future<bool> processBatchSync(
       List<Map<String, dynamic>> batch) async {

@@ -1,11 +1,29 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/branch_model.dart';
 import 'offline_sync_service.dart';
+import 'laravel_api_service.dart';
 
 class BranchService {
   Future<List<Branch>> getBranches() async {
-    return _loadFromCache();
+    final cached = _loadFromCache();
+    fetchRemoteBranches();
+    return cached;
+  }
+
+  Future<void> fetchRemoteBranches() async {
+    try {
+      final remoteList = await LaravelApiService.fetchBranches();
+      if (remoteList.isNotEmpty) {
+        final List<Branch> remoteBranches = remoteList
+            .map((b) => Branch.fromJson(Map<String, dynamic>.from(b)))
+            .toList();
+        saveToCache(remoteBranches);
+      }
+    } catch (e) {
+      debugPrint('BranchService fetchRemoteBranches error: $e');
+    }
   }
 
   void saveToCache(List<Branch> branches) {
@@ -49,6 +67,7 @@ class BranchService {
     final cached = _loadFromCache();
     cached.add(branch);
     saveToCache(cached);
+    unawaited(LaravelApiService.submitBranch(branch.toJson()));
     await OfflineSyncService.addToQueue('BRANCH', branch.toJson());
   }
 
