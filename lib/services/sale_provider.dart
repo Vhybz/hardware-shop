@@ -30,7 +30,7 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
   void _loadFromCache() {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.salesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.salesBoxName);
+        final box = Hive.box(OfflineSyncService.salesBoxName);
         final List<SaleRecord> cached = [];
         if (box.isNotEmpty) {
           cached.addAll(box.values.map(
@@ -56,7 +56,7 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
   Future<void> updateSale(SaleRecord sale) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.salesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.salesBoxName);
+        final box = Hive.box(OfflineSyncService.salesBoxName);
         await box.put(sale.id, sale.toJson());
       }
       state = [
@@ -104,7 +104,7 @@ class SaleHistoryNotifier extends StateNotifier<List<SaleRecord>> {
     try {
       // 1. Instant local persistence & state update (0ms)
       if (Hive.isBoxOpen(OfflineSyncService.salesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.salesBoxName);
+        final box = Hive.box(OfflineSyncService.salesBoxName);
         await box.put(sale.id, sale.toJson());
       }
       state = [sale, ...state];

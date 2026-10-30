@@ -33,7 +33,7 @@ class LocalProductService implements ProductService {
   Future<List<Product>> getProducts(String branchCode) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+        final box = Hive.box(OfflineSyncService.productsBoxName);
         return box.values
             .map((json) => Product.fromJson(Map<String, dynamic>.from(json)))
             .where((p) => p.branchCode == branchCode && !p.isDeleted)
@@ -49,7 +49,7 @@ class LocalProductService implements ProductService {
   Future<List<Product>> getDeletedProducts(String branchCode) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+        final box = Hive.box(OfflineSyncService.productsBoxName);
         return box.values
             .map((json) => Product.fromJson(Map<String, dynamic>.from(json)))
             .where((p) => p.branchCode == branchCode && p.isDeleted)
@@ -64,7 +64,7 @@ class LocalProductService implements ProductService {
   @override
   Future<Product> getProductById(String id) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       final item = box.get(id);
       if (item != null) {
         return Product.fromJson(Map<String, dynamic>.from(item));
@@ -76,7 +76,7 @@ class LocalProductService implements ProductService {
   @override
   Future<void> addProduct(Product product) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       await box.put(product.id, product.toJson());
     }
     await OfflineSyncService.addToQueue('UPDATE_PRODUCT', product.toJson());
@@ -86,7 +86,7 @@ class LocalProductService implements ProductService {
   @override
   Future<void> updateProduct(Product product) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       await box.put(product.id, product.toJson());
     }
     await OfflineSyncService.addToQueue('UPDATE_PRODUCT', product.toJson());
@@ -96,7 +96,7 @@ class LocalProductService implements ProductService {
   @override
   Future<void> deleteProduct(String id) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       final item = box.get(id);
       if (item != null) {
         final p = Product.fromJson(Map<String, dynamic>.from(item));
@@ -110,7 +110,7 @@ class LocalProductService implements ProductService {
   @override
   Future<void> restoreProduct(String id) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       final item = box.get(id);
       if (item != null) {
         final p = Product.fromJson(Map<String, dynamic>.from(item));
@@ -123,7 +123,7 @@ class LocalProductService implements ProductService {
   @override
   Future<void> updateStock(String id, double newQuantity) async {
     if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-      final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+      final box = Hive.box(OfflineSyncService.productsBoxName);
       final item = box.get(id);
       if (item != null) {
         final p = Product.fromJson(Map<String, dynamic>.from(item));
@@ -224,7 +224,7 @@ class ProductNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     try {
       final remoteData = await LaravelApiService.fetchProducts(branchCode);
       if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+        final box = Hive.box(OfflineSyncService.productsBoxName);
         for (final item in remoteData) {
           if (item is Map) {
             final map = Map<String, dynamic>.from(item);
@@ -243,7 +243,7 @@ class ProductNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   void _loadFromCache() {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.productsBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.productsBoxName);
+        final box = Hive.box(OfflineSyncService.productsBoxName);
         if (box.isNotEmpty) {
           final List<Product> cached = box.values
               .map((json) => Product.fromJson(Map<String, dynamic>.from(json)))

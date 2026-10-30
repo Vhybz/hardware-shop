@@ -207,7 +207,7 @@ class OfflineSyncService {
     // 2. Local Sales
     try {
       if (Hive.isBoxOpen(salesBoxName)) {
-        final box = Hive.box<Map>(salesBoxName);
+        final box = Hive.box(salesBoxName);
         for (final s in box.values) {
           final map = Map<String, dynamic>.from(s);
           if (map['id'] != null) {
@@ -220,7 +220,7 @@ class OfflineSyncService {
     // 3. Local Products
     try {
       if (Hive.isBoxOpen(productsBoxName)) {
-        final box = Hive.box<Map>(productsBoxName);
+        final box = Hive.box(productsBoxName);
         for (final p in box.values) {
           final map = Map<String, dynamic>.from(p);
           if (map['id'] != null) {
@@ -233,7 +233,7 @@ class OfflineSyncService {
     // 4. Local Customers
     try {
       if (Hive.isBoxOpen(customersBoxName)) {
-        final box = Hive.box<Map>(customersBoxName);
+        final box = Hive.box(customersBoxName);
         for (final c in box.values) {
           final map = Map<String, dynamic>.from(c);
           if (map['id'] != null) {
@@ -246,7 +246,7 @@ class OfflineSyncService {
     // 5. Local Expenses
     try {
       if (Hive.isBoxOpen(expensesBoxName)) {
-        final box = Hive.box<Map>(expensesBoxName);
+        final box = Hive.box(expensesBoxName);
         for (final e in box.values) {
           final map = Map<String, dynamic>.from(e);
           if (map['id'] != null) {

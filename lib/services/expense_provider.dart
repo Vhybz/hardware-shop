@@ -50,7 +50,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
   void _loadFromCache() {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.expensesBoxName);
+        final box = Hive.box(OfflineSyncService.expensesBoxName);
         final records = box.values
             .map((e) => ExpenseRecord.fromJson(Map<String, dynamic>.from(e)))
             .toList();
@@ -64,7 +64,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
   Future<void> addExpense(ExpenseRecord expense) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.expensesBoxName);
+        final box = Hive.box(OfflineSyncService.expensesBoxName);
         await box.put(expense.id, expense.toJson());
       }
       state = state.copyWith(records: [...state.records, expense]);
@@ -77,7 +77,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
   Future<void> updateExpense(ExpenseRecord expense) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.expensesBoxName);
+        final box = Hive.box(OfflineSyncService.expensesBoxName);
         await box.put(expense.id, expense.toJson());
       }
       final updated = state.records
@@ -135,7 +135,7 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
   Future<void> deleteExpense(String id) async {
     try {
       if (Hive.isBoxOpen(OfflineSyncService.expensesBoxName)) {
-        final box = Hive.box<Map>(OfflineSyncService.expensesBoxName);
+        final box = Hive.box(OfflineSyncService.expensesBoxName);
         await box.delete(id);
       }
       state = state.copyWith(
