@@ -328,6 +328,12 @@ class Product {
       return PromoTarget.both;
     }
 
+    double safeNum(dynamic val, [double defaultVal = 0.0]) {
+      if (val == null) return defaultVal;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? defaultVal;
+    }
+
     String parsedCategory = map['category']?.toString() ?? 'BUILDING MATERIALS';
     final upperCat = parsedCategory.toUpperCase();
     if (upperCat.contains('SKINCARE') || upperCat.contains('COSMETIC') || upperCat.contains('MAKEUP') || upperCat.contains('FRAGRANCE') || upperCat.contains('HAIRCARE') || upperCat.contains('PERFUME')) {
@@ -336,11 +342,11 @@ class Product {
 
     return Product(
       id: map['id'] as String,
-      branchCode: map['branch_code'],
-      name: map['name'] as String,
-      retailPrice: (map['retail_price'] as num).toDouble(),
-      wholesalePrice: (map['wholesale_price'] as num).toDouble(),
-      costPrice: (map['cost_price'] as num? ?? 0).toDouble(),
+      branchCode: map['branch_code']?.toString(),
+      name: map['name'] as String? ?? 'Product',
+      retailPrice: safeNum(map['retail_price']),
+      wholesalePrice: safeNum(map['wholesale_price']),
+      costPrice: safeNum(map['cost_price']),
       retailBrackets: (map['retail_brackets'] as List?)
           ?.map((e) => PriceBracket.fromJson(e))
           .toList(),
@@ -349,9 +355,9 @@ class Product {
           .toList(),
       imageUrl: map['image_url'] as String? ?? '',
       category: parsedCategory,
-      stockQuantity: (map['stock_quantity'] as num? ?? 0.0).toDouble(),
-      warehouseQuantity: (map['warehouse_quantity'] as num? ?? (map['initial_weight'] as num? ?? 0.0)).toDouble(),
-      minStoreStock: (map['min_store_stock'] as num? ?? (map['low_stock_threshold'] as num? ?? 5.0)).toDouble(),
+      stockQuantity: safeNum(map['stock_quantity']),
+      warehouseQuantity: safeNum(map['warehouse_quantity'] ?? map['initial_weight']),
+      minStoreStock: safeNum(map['min_store_stock'] ?? map['low_stock_threshold'], 5.0),
       sku: map['sku']?.toString(),
       brand: map['brand']?.toString(),
       size: (map['size'] != null && map['size'].toString().trim().isNotEmpty) ? map['size'].toString() : 'Standard',
@@ -359,10 +365,10 @@ class Product {
       unit: map['unit'] as String? ?? 'Pcs',
       hasPacks: map['has_packs'] ?? true,
       hasBoxes: map['has_boxes'] ?? true,
-      pcsPerPack: (map['pcs_per_pack'] as num? ?? 12.0).toDouble(),
-      packsPerBox: (map['packs_per_box'] as num? ?? 10.0).toDouble(),
-      pcsPerBox: (map['pcs_per_box'] as num? ?? (map['pieces_per_box'] as num? ?? 120.0)).toDouble(),
-      discountPercentage: (map['discount_percentage'] as num? ?? 0.0).toDouble(),
+      pcsPerPack: safeNum(map['pcs_per_pack'], 12.0),
+      packsPerBox: safeNum(map['packs_per_box'], 10.0),
+      pcsPerBox: safeNum(map['pcs_per_box'] ?? map['pieces_per_box'], 120.0),
+      discountPercentage: safeNum(map['discount_percentage']),
       promoStartDate: map['promo_start_date'] != null 
           ? DateTime.tryParse(map['promo_start_date'].toString()) 
           : (map['promo_start'] != null ? DateTime.tryParse(map['promo_start'].toString()) : null),
@@ -372,13 +378,13 @@ class Product {
       promoTarget: safePromoTarget(map['promo_target']),
       promoCustomerTarget: safeCustomerTarget(map['promo_customer_target']),
       targetCustomerId: map['target_customer_id']?.toString(),
-      isDeleted: map['is_deleted'] ?? false,
-      isUnlimited: map['is_unlimited'] ?? false,
+      isDeleted: map['is_deleted'] == true,
+      isUnlimited: map['is_unlimited'] == true,
       allowRetail: map['allow_retail'] ?? true,
       allowWholesale: map['allow_wholesale'] ?? true,
-      lowStockThreshold: (map['low_stock_threshold'] as num? ?? 5.0).toDouble(),
-      dailyStockAdded: (map['daily_stock_added'] as num? ?? 0.0).toDouble(),
-      lastStockUpdate: map['last_stock_update'] != null ? DateTime.parse(map['last_stock_update']) : null,
+      lowStockThreshold: safeNum(map['low_stock_threshold'], 5.0),
+      dailyStockAdded: safeNum(map['daily_stock_added']),
+      lastStockUpdate: map['last_stock_update'] != null ? DateTime.tryParse(map['last_stock_update'].toString()) : null,
     );
   }
 
