@@ -163,7 +163,10 @@ class _CashierPOSState extends ConsumerState<CashierPOS> {
 
     // Instant Permission Guard: Redirect if access is revoked
     final roles = user.activeRoles;
-    final hasAccess = roles.contains(UserRole.cashier) || roles.contains(UserRole.superAdmin) || user.enabledPermissions.contains('/cashier');
+    final hasAccess = roles.contains(UserRole.cashier) || 
+                      roles.contains(UserRole.admin) || 
+                      roles.contains(UserRole.superAdmin) || 
+                      user.enabledPermissions.any((p) => p == '/cashier' || p.startsWith('/cashier'));
     
     if (!hasAccess) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
