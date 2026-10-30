@@ -61,6 +61,7 @@ class MenuService {
     final List<SidebarItem> adminItems = [
       SidebarItem(icon: Icons.dashboard_rounded, label: 'Admin Dashboard', route: '/admin', category: secOverview),
       SidebarItem(icon: Icons.bar_chart_rounded, label: 'Sales & Analytics', route: '/admin/sales', category: secOverview),
+      SidebarItem(icon: Icons.point_of_sale_rounded, label: 'Point Of Sale', route: '/cashier', category: secStore),
       SidebarItem(icon: Icons.people_outline_rounded, label: 'Customer Directory', route: '/admin/customers', category: secStore),
       SidebarItem(icon: Icons.assignment_return_rounded, label: 'Returns & Refunds Hub', route: '/admin/returns', category: secStore),
       SidebarItem(icon: Icons.account_balance_wallet_rounded, label: 'Debt Tracker', route: '/admin/debts', category: secStore),
@@ -140,7 +141,8 @@ class MenuService {
     // 2. Cashier Module
     final hasCashierAccess = roles.contains(UserRole.superAdmin) || 
                              roles.contains(UserRole.cashier) || 
-                             user.enabledPermissions.contains('/cashier');
+                             roles.contains(UserRole.admin) || 
+                             user.enabledPermissions.any((p) => p == '/cashier' || p.startsWith('/cashier'));
     
     if (hasCashierAccess) {
       items.add(SidebarItem(
