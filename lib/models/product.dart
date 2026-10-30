@@ -320,6 +320,14 @@ class Product {
       }
     }
 
+    PromoTarget safePromoTarget(dynamic val) {
+      if (val == null) return PromoTarget.both;
+      final str = val.toString().toLowerCase().trim();
+      if (str.contains('retail')) return PromoTarget.retail;
+      if (str.contains('wholesale')) return PromoTarget.wholesale;
+      return PromoTarget.both;
+    }
+
     String parsedCategory = map['category']?.toString() ?? 'BUILDING MATERIALS';
     final upperCat = parsedCategory.toUpperCase();
     if (upperCat.contains('SKINCARE') || upperCat.contains('COSMETIC') || upperCat.contains('MAKEUP') || upperCat.contains('FRAGRANCE') || upperCat.contains('HAIRCARE') || upperCat.contains('PERFUME')) {
@@ -361,7 +369,7 @@ class Product {
       promoEndDate: map['promo_end_date'] != null 
           ? DateTime.tryParse(map['promo_end_date'].toString()) 
           : (map['promo_end'] != null ? DateTime.tryParse(map['promo_end'].toString()) : null),
-      promoTarget: PromoTarget.values.byName(map['promo_target'] ?? 'both'),
+      promoTarget: safePromoTarget(map['promo_target']),
       promoCustomerTarget: safeCustomerTarget(map['promo_customer_target']),
       targetCustomerId: map['target_customer_id']?.toString(),
       isDeleted: map['is_deleted'] ?? false,
