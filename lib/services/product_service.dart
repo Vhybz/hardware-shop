@@ -200,9 +200,13 @@ class ProductNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   void _init() {
     _loadFromCache();
 
+    final initialUser = ref.read(currentUserProvider);
+    final initialBranch = initialUser?.branchCode ?? 'MAIN';
+    syncFromBackend(initialBranch);
+
     ref.listen(currentUserProvider, (previous, next) {
-      final bCode = next?.branchCode;
-      if (bCode != previous?.branchCode && bCode != null) {
+      final bCode = next?.branchCode ?? 'MAIN';
+      if (bCode != previous?.branchCode) {
         _loadFromCache();
         syncFromBackend(bCode);
       }
