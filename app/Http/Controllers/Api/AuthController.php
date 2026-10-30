@@ -15,7 +15,10 @@ class AuthController extends Controller {
             'password' => 'required',
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        $email = strtolower(trim($credentials['email']));
+        $password = $credentials['password'];
+
+        if (!Auth::attempt(['email' => $email, 'password' => $password])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid email address or password'
@@ -64,12 +67,13 @@ class AuthController extends Controller {
 
         $firstName = $validated['first_name'];
         $surname = $validated['surname'];
+        $email = strtolower(trim($validated['email']));
 
         $user = User::create([
             'name' => trim("$firstName $surname"),
             'first_name' => $firstName,
             'surname' => $surname,
-            'email' => $validated['email'],
+            'email' => $email,
             'password' => $validated['password'],
             'phone' => $validated['phone'] ?? null,
             'gender' => $validated['gender'] ?? null,
