@@ -28,6 +28,7 @@ class User extends Authenticatable
         'branch_code',
         'status',
         'enabled_permissions',
+        'is_deleted',
         'password',
     ];
 
