@@ -889,14 +889,6 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
     }
   }
 
-  IconData _getRoleIcon(UserRole role) {
-    switch (role) {
-      case UserRole.superAdmin: return Icons.security;
-      case UserRole.admin: return Icons.admin_panel_settings;
-      case UserRole.cashier: return Icons.point_of_sale;
-    }
-  }
-
   // Reuse existing dialog logic but slightly cleaned up
   void _showAddUserDialog(BuildContext context, WidgetRef ref) {
     final currentUser = ref.read(currentUserProvider);

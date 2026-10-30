@@ -84,7 +84,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     final theme = Theme.of(context);
     final themeState = ref.watch(themeProvider);
     final bool isDark = themeState.mode == ThemeMode.dark;
-    final user = ref.watch(currentUserProvider);
     
     final Color roleColor = isDark 
         ? (theme.appBarTheme.backgroundColor ?? const Color(0xFF1E1E1E))
