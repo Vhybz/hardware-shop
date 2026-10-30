@@ -49,6 +49,7 @@ class BranchService {
     final cached = _loadFromCache();
     cached.add(branch);
     saveToCache(cached);
+    await OfflineSyncService.addToQueue('BRANCH', branch.toJson());
   }
 
   Future<Branch?> getBranchByCode(String code) async {

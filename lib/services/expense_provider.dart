@@ -84,6 +84,12 @@ class ExpenseNotifier extends StateNotifier<ExpenseState> {
           .map((r) => r.id == expense.id ? expense : r)
           .toList();
       state = state.copyWith(records: updated);
+      await OfflineSyncService.addToQueue('EXPENSE', expense.toJson());
+    } catch (e) {
+      debugPrint('updateExpense error: $e');
+    }
+  }
+      state = state.copyWith(records: updated);
     } catch (e) {
       debugPrint('updateExpense error: $e');
     }
