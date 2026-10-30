@@ -32,12 +32,15 @@ class OfflineSyncService {
     return key;
   }
 
-  static Future<Box<E>> _openSecureBox<E>(String boxName, List<int> key) async {
+  static Future<Box> _openSecureBox(String boxName, List<int> key) async {
     try {
-      if (kIsWeb) {
-        return await Hive.openBox<E>(boxName);
+      if (Hive.isBoxOpen(boxName)) {
+        return Hive.box(boxName);
       }
-      return await Hive.openBox<E>(boxName,
+      if (kIsWeb) {
+        return await Hive.openBox(boxName);
+      }
+      return await Hive.openBox(boxName,
           encryptionCipher: HiveAesCipher(key));
     } catch (e) {
       debugPrint('Hive Box Error ($boxName): $e. Wiping local cache...');
@@ -45,9 +48,9 @@ class OfflineSyncService {
         await Hive.deleteBoxFromDisk(boxName);
       } catch (_) {}
       try {
-        return await Hive.openBox<E>(boxName);
+        return await Hive.openBox(boxName);
       } catch (_) {
-        return await Hive.openBox<E>('${boxName}_clean');
+        return await Hive.openBox('${boxName}_clean');
       }
     }
   }
@@ -56,17 +59,17 @@ class OfflineSyncService {
     await Hive.initFlutter();
     final encryptionKey = _getOrCreateEncryptionKey();
 
-    await _openSecureBox<Map>(queueBoxName, encryptionKey);
-    await _openSecureBox<Map>(productsBoxName, encryptionKey);
-    await _openSecureBox<Map>(customersBoxName, encryptionKey);
-    await _openSecureBox<Map>(salesBoxName, encryptionKey);
-    await _openSecureBox<Map>(notificationsBoxName, encryptionKey);
-    await _openSecureBox<Map>(expensesBoxName, encryptionKey);
-    await _openSecureBox<Map>(transfersBoxName, encryptionKey);
-    await _openSecureBox<Map>(butcherBoxName, encryptionKey);
-    await _openSecureBox<Map>(auditBoxName, encryptionKey);
-    await _openSecureBox<dynamic>(settingsBoxName, encryptionKey);
-    await _openSecureBox<Map>(branchesBoxName, encryptionKey);
+    await _openSecureBox(queueBoxName, encryptionKey);
+    await _openSecureBox(productsBoxName, encryptionKey);
+    await _openSecureBox(customersBoxName, encryptionKey);
+    await _openSecureBox(salesBoxName, encryptionKey);
+    await _openSecureBox(notificationsBoxName, encryptionKey);
+    await _openSecureBox(expensesBoxName, encryptionKey);
+    await _openSecureBox(transfersBoxName, encryptionKey);
+    await _openSecureBox(butcherBoxName, encryptionKey);
+    await _openSecureBox(auditBoxName, encryptionKey);
+    await _openSecureBox(settingsBoxName, encryptionKey);
+    await _openSecureBox(branchesBoxName, encryptionKey);
 
     _listenToConnectivity();
     unawaited(processQueue());

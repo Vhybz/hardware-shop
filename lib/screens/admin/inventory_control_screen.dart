@@ -1676,7 +1676,7 @@ class _InventoryControlScreenState extends ConsumerState<InventoryControlScreen>
 
                   setState(() => isUploading = true);
                   
-                  String finalImageUrl = 'assets/images/cos1.jpg';
+                  String finalImageUrl = '';
                   
                   if (imageBytes != null && imageName != null) {
                     final uploadedUrl = await ref.read(productsFutureProvider.notifier).uploadImage(
