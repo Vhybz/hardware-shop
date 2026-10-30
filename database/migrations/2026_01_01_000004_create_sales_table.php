@@ -9,9 +9,9 @@ return new class extends Migration {
         Schema::create('sales', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->string('branch_code');
-            $table->uuid('cashier_id')->nullable();
+            $table->string('cashier_id')->nullable();
             $table->string('cashier_name');
-            $table->uuid('customer_id')->nullable();
+            $table->string('customer_id')->nullable();
             $table->string('customer_name')->nullable();
             $table->string('customer_phone')->nullable();
             $table->decimal('total_amount', 12, 2)->default(0);
